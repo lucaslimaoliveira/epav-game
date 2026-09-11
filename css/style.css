@@ -97,7 +97,7 @@ h1, h2, p { overflow-wrap: anywhere; }
 #nome-vendedor-hud { display: block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dica-observacao { position: absolute; z-index: 20; top: 20px; left: 50%; transform: translateX(-50%); padding: 10px 14px; border: 3px solid var(--ink); background: var(--cream); box-shadow: 4px 4px 0 var(--ink); font-weight: 900; }
 .dica-observacao span { display: inline-grid; place-items: center; width: 24px; height: 24px; margin-right: 7px; background: var(--gold); border: 2px solid var(--ink); }
-#vendedor-sprite { position: absolute; z-index: 8; bottom: 1%; left: 3%; width: clamp(220px, 24vw, 400px); max-height: 68vh; object-fit: contain; filter: drop-shadow(0 14px 12px rgba(0,0,0,.36)); }
+#vendedor-sprite { position: absolute; z-index: 8; bottom: 1%; left: 3%; width: clamp(180px, 19vw, 320px); max-height: 58vh; object-fit: contain; filter: drop-shadow(0 14px 12px rgba(0,0,0,.36)); }
 .marcador-cliente { position: absolute; z-index: 12; width: 46px; height: 40px; transform: translate(-50%,-50%); background: var(--paper); border: 3px solid var(--ink); border-radius: 50% 50% 50% 5px; cursor: pointer; box-shadow: 3px 3px 0 var(--ink); }
 .marcador-cliente::before { content: "?"; position: absolute; inset: 0; display: grid; place-items: center; font: 14px "Press Start 2P", monospace; }
 .marcador-cliente:hover, .marcador-cliente:focus-within { z-index: 30; }
@@ -242,7 +242,7 @@ h1, h2, p { overflow-wrap: anywhere; }
   .hud-escritorio small { font-size: clamp(5px, 1.7vw, 7px); }
   .hud-escritorio strong { font-size: clamp(14px, 4.3vw, 18px); }
   #nome-vendedor-hud { max-width: 27vw; }
-  #vendedor-sprite { bottom: 1%; width: clamp(155px, 45vw, 215px); max-height: 52vh; }
+  #vendedor-sprite { bottom: 1%; width: clamp(135px, 38vw, 180px); max-height: 45vh; }
   .marcador-cliente { width: 44px; height: 40px; margin: -20px 0 0 -22px; transform: none; }
   .popup-cliente { position: fixed; z-index: 60; left: 12px; right: 12px; bottom: max(14px, env(safe-area-inset-bottom)); width: auto; transform: translateY(8px); }
   .marcador-cliente:hover .popup-cliente, .marcador-cliente:focus-within .popup-cliente { transform: none; }
