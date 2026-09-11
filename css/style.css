@@ -47,19 +47,41 @@ h1, h2, p { overflow-wrap: anywhere; }
 .botao.perigo { background: #ffcad0; color: #7a1830; }
 
 /* Menu */
-#tela-menu, #tela-resultado, #tela-final {
+#tela-menu, #tela-personalizacao, #tela-resultado, #tela-final {
   background-position: center; background-size: cover; padding: clamp(22px, 6vw, 72px);
 }
 #tela-menu { background-image: linear-gradient(90deg, rgba(18,48,74,.25), transparent 60%), url('../assets/images/img1.jpg'); }
+#tela-personalizacao { background-image: linear-gradient(rgba(18,48,74,.28), rgba(18,48,74,.58)), url('../assets/images/img1.jpg'); }
 #tela-resultado { background-image: url('../assets/images/img2.jpg'); }
 #tela-final { background-image: url('../assets/images/img3.jpg'); }
-#tela-menu.ativa, #tela-resultado.ativa, #tela-final.ativa { display: flex; align-items: center; }
+#tela-menu.ativa, #tela-personalizacao.ativa, #tela-resultado.ativa, #tela-final.ativa { display: flex; align-items: center; }
 .menu-painel { width: min(470px, 100%); padding: clamp(28px, 5vw, 48px); }
 .menu-painel h1 { margin: 0; font-size: clamp(42px, 7vw, 76px); line-height: .87; letter-spacing: -.06em; }
 .menu-painel h1 span { color: var(--coral); text-shadow: 3px 3px 0 var(--ink); }
 .menu-intro { max-width: 30ch; font-size: 18px; font-weight: 800; }
 .menu-acoes { display: grid; gap: 12px; margin-top: 28px; }
 .resumo-menu { margin-top: 22px; padding-top: 16px; border-top: 2px dashed var(--ink); font-size: 13px; font-weight: 800; }
+
+/* Personalização do vendedor */
+.personalizacao-painel { width: min(660px, 100%); margin: auto; padding: clamp(25px, 5vw, 42px); }
+.personalizacao-painel h2 { margin: 0; font-size: clamp(31px, 5vw, 50px); line-height: 1; }
+.personalizacao-intro { margin: 10px 0 22px; font-weight: 800; }
+.campo-nome { display: grid; gap: 8px; font-weight: 900; }
+.campo-nome span, .selecao-personagem legend { color: var(--teal); font: 9px/1.5 "Press Start 2P", monospace; }
+.campo-nome input { width: 100%; min-height: 52px; padding: 10px 14px; border: 3px solid var(--ink); background: var(--paper); color: var(--ink); font: 800 18px "Nunito", sans-serif; box-shadow: 4px 4px 0 var(--ink); }
+.campo-nome input:focus { outline: 3px solid var(--gold); outline-offset: 3px; }
+.selecao-personagem { margin: 24px 0 0; padding: 0; border: 0; }
+.selecao-personagem legend { margin-bottom: 10px; }
+.personagens-opcoes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.cartao-personagem { position: relative; display: grid; grid-template-columns: 90px 1fr; grid-template-rows: 1fr auto; align-items: center; min-height: 155px; padding: 12px; border: 3px solid var(--ink); background: var(--cream); box-shadow: 4px 4px 0 var(--ink); cursor: pointer; overflow: hidden; }
+.cartao-personagem input { position: absolute; opacity: 0; pointer-events: none; }
+.cartao-personagem:has(input:checked) { background: #d7f1e8; outline: 4px solid var(--coral); outline-offset: -7px; }
+.cartao-personagem:has(input:focus-visible) { outline: 4px solid var(--gold); outline-offset: 3px; }
+.personagem-preview { grid-row: 1 / 3; display: grid; place-items: end center; align-self: stretch; min-height: 126px; }
+.personagem-preview img { width: 88px; height: 130px; object-fit: contain; object-position: bottom; filter: drop-shadow(3px 5px 0 rgba(23,36,51,.18)); }
+.cartao-personagem strong { align-self: end; font-size: 20px; }
+.cartao-personagem small { align-self: start; color: var(--teal); font-weight: 900; text-transform: uppercase; }
+.personalizacao-acoes { display: grid; grid-template-columns: .8fr 1.2fr; gap: 12px; margin-top: 24px; }
 
 /* Escritório */
 #cenario-escritorio { position: relative; width: 100%; height: 100vh; min-height: 590px; overflow: hidden; background: center/cover url('../assets/images/escritorio-geral.png'); }
@@ -68,9 +90,11 @@ h1, h2, p { overflow-wrap: anywhere; }
 .hud-escritorio > div, .pontos-dialogo { min-width: 112px; padding: 10px 14px; border: 3px solid var(--ink); background: var(--paper); box-shadow: 4px 4px 0 var(--ink); }
 .hud-escritorio small, .hud-dialogo small { display: block; font: 8px/1.5 "Press Start 2P", monospace; color: var(--teal); }
 .hud-escritorio strong { font-size: 20px; }
+.hud-escritorio .hud-identidade { min-width: 150px; }
+#nome-vendedor-hud { display: block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dica-observacao { position: absolute; z-index: 20; top: 20px; left: 50%; transform: translateX(-50%); padding: 10px 14px; border: 3px solid var(--ink); background: var(--cream); box-shadow: 4px 4px 0 var(--ink); font-weight: 900; }
 .dica-observacao span { display: inline-grid; place-items: center; width: 24px; height: 24px; margin-right: 7px; background: var(--gold); border: 2px solid var(--ink); }
-#vendedor-sprite { position: absolute; z-index: 8; bottom: 3%; left: 3%; width: clamp(70px, 9vw, 135px); max-height: 35vh; object-fit: contain; filter: drop-shadow(0 10px 8px rgba(0,0,0,.3)); }
+#vendedor-sprite { position: absolute; z-index: 8; bottom: 2%; left: 3%; width: clamp(90px, 12vw, 175px); max-height: 42vh; object-fit: contain; filter: drop-shadow(0 10px 8px rgba(0,0,0,.3)); }
 .marcador-cliente { position: absolute; z-index: 12; width: 46px; height: 40px; transform: translate(-50%,-50%); background: var(--paper); border: 3px solid var(--ink); border-radius: 50% 50% 50% 5px; cursor: pointer; box-shadow: 3px 3px 0 var(--ink); }
 .marcador-cliente::before { content: "?"; position: absolute; inset: 0; display: grid; place-items: center; font: 14px "Press Start 2P", monospace; }
 .marcador-cliente:hover, .marcador-cliente:focus-within { z-index: 30; }
@@ -100,7 +124,7 @@ h1, h2, p { overflow-wrap: anywhere; }
 #barra-satisfacao-preenchimento { height: 100%; width: 50%; background: var(--green); transition: width .35s, background .35s; }
 .pontos-dialogo { min-width: 90px; }
 .palco-personagens { position: absolute; z-index: 3; inset: 10% 5% 30%; display: flex; align-items: flex-end; justify-content: space-between; pointer-events: none; }
-#vendedor-dialogo { width: min(33vw, 300px); height: 100%; object-fit: contain; object-position: bottom; filter: drop-shadow(0 12px 10px rgba(0,0,0,.22)); }
+#vendedor-dialogo { width: min(38vw, 350px); height: 100%; object-fit: contain; object-position: bottom; filter: drop-shadow(0 12px 10px rgba(0,0,0,.22)); }
 #cliente-retrato { width: min(32vw, 330px); height: min(55vh, 470px); object-fit: cover; object-position: top; border: 4px solid var(--ink); box-shadow: 7px 7px 0 var(--ink); background: var(--cream); }
 .dialogo-area { position: absolute; z-index: 10; left: 50%; bottom: 18px; width: min(860px, calc(100% - 32px)); transform: translateX(-50%); }
 #balao-fala { min-height: 108px; padding: 28px 24px 18px; }
@@ -113,6 +137,7 @@ h1, h2, p { overflow-wrap: anywhere; }
 #opcoes-resposta button::before { content: attr(data-letra); display: inline-grid; place-items: center; width: 25px; height: 25px; margin-right: 8px; background: var(--mint); border: 2px solid var(--ink); font: 8px "Press Start 2P", monospace; }
 #opcoes-resposta button:hover, #opcoes-resposta button:focus-visible { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 var(--ink); outline: 3px solid var(--gold); }
 #opcoes-resposta button.produto::after { content: attr(data-preco); display: block; margin: 8px 0 0 36px; color: var(--teal); font: 9px "Press Start 2P", monospace; }
+.dica-teclado { margin: 10px 0 0; color: white; text-align: center; font-size: 12px; font-weight: 900; text-shadow: 0 2px 3px rgba(0,0,0,.9); }
 .pontos-flutuantes { position: absolute; z-index: 50; top: -8px; right: 10px; padding: 5px; background: var(--paper); border: 2px solid var(--ink); font: 12px "Press Start 2P", monospace; animation: subir-sumir 1s ease forwards; pointer-events: none; }
 @keyframes subir-sumir { to { opacity: 0; transform: translateY(-34px); } }
 
@@ -133,8 +158,8 @@ h1, h2, p { overflow-wrap: anywhere; }
 .cutscene-cliente img { display: block; width: 100%; aspect-ratio: .78; object-fit: cover; object-position: top; border: 3px solid var(--ink); background: var(--paper); box-shadow: 4px 4px 0 var(--ink); }
 .cutscene-cliente span { display: inline-block; margin-top: -2px; padding: 4px 7px; border: 2px solid var(--ink); background: var(--paper); font: 7px/1.4 "Press Start 2P", monospace; }
 @keyframes cliente-entra { from { opacity: 0; transform: translateY(45px) scale(.85); } }
-#cutscene-vendedor { position: absolute; z-index: 3; left: 50%; bottom: 4%; width: clamp(105px, 13vw, 180px); max-height: 42vh; object-fit: contain; transform: translateX(-50%); filter: drop-shadow(0 10px 8px rgba(0,0,0,.32)); }
-.cutscene-fala { min-height: 58px; max-width: 620px; margin: 18px auto 0; padding: 13px 18px; border: 3px solid var(--ink); background: var(--paper); box-shadow: 5px 5px 0 var(--ink); font-weight: 900; }
+#cutscene-vendedor { position: absolute; z-index: 3; left: clamp(18px, 4vw, 64px); bottom: 3%; width: clamp(135px, 16vw, 225px); max-height: 48vh; object-fit: contain; transform: none; filter: drop-shadow(0 10px 8px rgba(0,0,0,.32)); }
+.cutscene-fala { position: absolute; left: clamp(205px, 21vw, 300px); right: clamp(235px, 23vw, 320px); bottom: 28px; min-height: 58px; max-width: none; margin: 0; padding: 13px 18px; border: 3px solid var(--ink); background: var(--paper); box-shadow: 5px 5px 0 var(--ink); font-weight: 900; }
 #cutscene-continuar { position: absolute; z-index: 5; right: 24px; bottom: 24px; }
 
 #cutscene-cenario.sucesso .cutscene-cliente { animation-name: comemorar-cliente; animation-duration: .85s; animation-iteration-count: infinite; animation-direction: alternate; }
@@ -142,7 +167,7 @@ h1, h2, p { overflow-wrap: anywhere; }
 #cutscene-cenario.sucesso #cutscene-vendedor { animation: comemorar-vendedor .75s ease-in-out infinite alternate; }
 #cutscene-cenario.sucesso::after { content: "★  ✦  ★  ✦  ★"; position: absolute; inset: 20% 0 auto; color: var(--gold); font-size: clamp(28px, 6vw, 70px); letter-spacing: 4vw; animation: brilhar 1s ease-in-out infinite alternate; }
 @keyframes comemorar-cliente { from { transform: translateY(4px) rotate(-1deg); } to { transform: translateY(-10px) rotate(1deg); } }
-@keyframes comemorar-vendedor { to { transform: translateX(-50%) translateY(-12px) rotate(2deg); } }
+@keyframes comemorar-vendedor { to { transform: translateY(-12px) rotate(2deg); } }
 @keyframes brilhar { from { opacity: .45; transform: scale(.92); } to { opacity: 1; transform: scale(1.04); } }
 
 #cutscene-cenario.fracasso::before { background: linear-gradient(rgba(74,16,31,.54), rgba(18,23,34,.88)); }
@@ -153,9 +178,9 @@ h1, h2, p { overflow-wrap: anywhere; }
 #cutscene-cenario.fracasso .cutscene-fala { background: #ffd9dd; color: #7a1830; }
 @keyframes reprovar-cliente { to { transform: translateX(7px) rotate(2deg); } }
 @keyframes vendedor-expulso {
-  0% { transform: translateX(-50%); }
-  20% { transform: translateX(-50%) rotate(-8deg); }
-  100% { transform: translateX(-850%) rotate(-16deg); }
+  0% { transform: translateX(0); }
+  20% { transform: translateX(0) rotate(-8deg); }
+  100% { transform: translateX(-180%) rotate(-16deg); }
 }
 
 /* Resultados, histórico e modal */
@@ -168,7 +193,7 @@ h1, h2, p { overflow-wrap: anywhere; }
 .metricas-finais strong { display: block; margin-top: 6px; font-size: 21px; }
 .selo-resultado { display: inline-grid; place-items: center; width: 72px; height: 64px; background: var(--green); border: 4px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); color: white; font-size: 35px; border-radius: 50% 50% 50% 8px; }
 .trofeu { font-size: 70px; filter: drop-shadow(4px 4px 0 var(--ink)); }
-.vendedor-final { width: 150px; height: 190px; object-fit: contain; float: right; margin: -18px -10px 2px 12px; filter: drop-shadow(5px 7px 0 rgba(23,36,51,.22)); }
+.vendedor-final { width: 180px; height: 225px; object-fit: contain; float: right; margin: -24px -14px 2px 12px; filter: drop-shadow(5px 7px 0 rgba(23,36,51,.22)); }
 .licao { margin: 18px 0; padding: 13px; border: 2px dashed var(--ink); background: var(--cream); font-weight: 800; }
 #tela-historico { padding: 28px; background: radial-gradient(circle at 10% 10%, #2ba6a1, var(--navy) 55%); }
 .historico-wrap { width: min(760px,100%); margin: auto; }
@@ -189,26 +214,37 @@ h1, h2, p { overflow-wrap: anywhere; }
 @keyframes zoom-saida { to { transform: scale(1.25); opacity: 0; } }
 
 @media (max-width: 700px) {
+  #tela-personalizacao { padding: 16px; }
+  .personalizacao-painel { padding: 24px 20px; }
+  .personagens-opcoes { gap: 9px; }
+  .cartao-personagem { grid-template-columns: 1fr; grid-template-rows: 112px auto auto; padding: 8px; text-align: center; }
+  .personagem-preview { grid-row: 1; min-height: 105px; }
+  .personagem-preview img { width: 76px; height: 108px; }
+  .cartao-personagem strong { font-size: 16px; }
+  .personalizacao-acoes { grid-template-columns: 1fr; }
   .dica-observacao { top: 92px; width: calc(100% - 32px); text-align: center; }
   .hud-escritorio { right: 18px; justify-content: space-between; }
   .hud-escritorio > div { min-width: 0; flex: 1; }
+  .hud-escritorio .hud-identidade { min-width: 0; }
+  #nome-vendedor-hud { max-width: 27vw; font-size: 15px; }
   .palco-personagens { inset: 12% 2% 43%; }
-  #vendedor-dialogo { width: 40vw; }
+  #vendedor-dialogo { width: 46vw; }
   #cliente-retrato { width: 42vw; height: 40vh; }
   .dialogo-area { bottom: 10px; }
   #balao-fala { min-height: 92px; padding: 24px 16px 12px; }
   #opcoes-resposta { grid-template-columns: 1fr; max-height: 31vh; overflow-y: auto; padding: 2px 5px 7px 2px; }
+  .dica-teclado { font-size: 10px; }
   .pontos-dialogo { display: none; }
   .popup-cliente { width: 190px; }
-  .vendedor-final { float: none; width: 120px; height: 145px; margin: -12px auto 0; display: block; }
+  .vendedor-final { float: none; width: 145px; height: 175px; margin: -12px auto 0; display: block; }
   .metricas-finais { grid-template-columns: 1fr; }
   #cutscene-cenario { padding: 22px 12px 140px; }
   .cutscene-clientes { gap: 4px; overflow: hidden; }
   .cutscene-cliente { min-width: 58px; width: 18vw; }
   .cutscene-cliente img { border-width: 2px; }
   .cutscene-cliente span { font-size: 5px; }
-  #cutscene-vendedor { bottom: 10%; width: 105px; }
-  .cutscene-fala { margin-top: 12px; padding: 10px; font-size: 13px; }
+  #cutscene-vendedor { left: 10px; bottom: 76px; width: 105px; max-height: 31vh; }
+  .cutscene-fala { left: 124px; right: 12px; bottom: 78px; min-height: 70px; padding: 10px; font-size: 13px; }
   #cutscene-continuar { right: 12px; bottom: 12px; left: 12px; width: calc(100% - 24px); }
 }
 

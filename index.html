@@ -23,9 +23,46 @@
       </div>
     </section>
 
+    <section id="tela-personalizacao" class="tela" aria-labelledby="titulo-personalizacao">
+      <form class="painel personalizacao-painel" onsubmit="confirmarPersonalizacao(event)">
+        <p class="sobretitulo">ANTES DA MISSÃO</p>
+        <h2 id="titulo-personalizacao">Crie seu vendedor</h2>
+        <p class="personalizacao-intro">Escolha como você quer aparecer durante os atendimentos.</p>
+
+        <label class="campo-nome" for="nome-vendedor">
+          <span>Nome do vendedor</span>
+          <input id="nome-vendedor" name="nome-vendedor" type="text" minlength="2" maxlength="20" placeholder="Digite o nome" autocomplete="name" oninput="this.setCustomValidity('')" required>
+        </label>
+
+        <fieldset class="selecao-personagem">
+          <legend>Escolha o personagem</legend>
+          <div class="personagens-opcoes">
+            <label class="cartao-personagem">
+              <input type="radio" name="sexo-vendedor" value="masculino" checked>
+              <span class="personagem-preview"><img src="assets/images/vendedor-parado.png" alt="Personagem masculino com uniforme e braçadeira EPAV"></span>
+              <strong>Masculino</strong>
+              <small>Vendedor</small>
+            </label>
+            <label class="cartao-personagem">
+              <input type="radio" name="sexo-vendedor" value="feminino">
+              <span class="personagem-preview"><img src="assets/images/vendedora-parada.png" alt="Personagem feminino com uniforme e braçadeira EPAV"></span>
+              <strong>Feminino</strong>
+              <small>Vendedora</small>
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="personalizacao-acoes">
+          <button type="button" class="botao secundario" onclick="mostrarTela('tela-menu')">← Voltar</button>
+          <button type="submit" class="botao primario">Começar missão ▶</button>
+        </div>
+      </form>
+    </section>
+
     <section id="tela-escritorio" class="tela" aria-label="Escritório">
       <div id="cenario-escritorio">
         <header class="hud-escritorio">
+          <div class="hud-identidade"><small id="cargo-vendedor-hud">VENDEDOR</small><strong id="nome-vendedor-hud">Kevin</strong></div>
           <div><small>CLIENTES</small><strong id="progresso-escritorio">0/5</strong></div>
           <div><small>PONTOS</small><strong id="pontos-escritorio">0000</strong></div>
         </header>
@@ -56,6 +93,7 @@
           </div>
           <p id="feedback-decisao" class="feedback-decisao" aria-live="polite"></p>
           <div id="opcoes-resposta"></div>
+          <p class="dica-teclado" aria-label="Atalhos do teclado">⌨ Escolha com A, B, C… ou 1, 2, 3… · Use as setas para navegar</p>
         </div>
       </div>
     </section>
@@ -97,7 +135,7 @@
           <div><small>TRATAMENTO DE OBJEÇÕES</small><strong id="objecoes-final">0%</strong></div>
         </div>
         <p id="pontuacao-final"></p>
-        <button class="botao primario" onclick="iniciarJogo()">Jogar novamente</button>
+        <button class="botao primario" onclick="abrirPersonalizacao()">Jogar novamente</button>
         <button class="botao secundario" onclick="mostrarTela('tela-menu')">Menu</button>
       </div>
     </section>
