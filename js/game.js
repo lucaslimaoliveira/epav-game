@@ -167,6 +167,7 @@ function mostrarEscritorio() {
     estado.primeiraEntradaEscritorio = false;
   } else {
     sprite.style.transition = 'none';
+    sprite.style.transform = 'none';
     sprite.style.left = '3%';
     sprite.src = imagemVendedor('parado');
   }
@@ -178,20 +179,21 @@ function animarChegada() {
   const sprite = document.getElementById('vendedor-sprite');
   const framesAndando = framesAndandoAtuais();
   sprite.style.transition = 'none';
-  sprite.style.left = '-18%';
+  sprite.style.transform = 'translateX(-50%)';
+  sprite.style.left = '-12%';
   let frameAtual = 0;
   const intervalo = setInterval(() => {
     sprite.src = framesAndando[frameAtual % framesAndando.length];
     frameAtual += 1;
   }, 145);
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    sprite.style.transition = 'left 1.7s cubic-bezier(.2,.8,.2,1)';
-    sprite.style.left = '3%';
+    sprite.style.transition = 'left 2s cubic-bezier(.2,.8,.2,1)';
+    sprite.style.left = '50%';
   }));
   setTimeout(() => {
     clearInterval(intervalo);
     sprite.src = imagemVendedor('parado');
-  }, 1750);
+  }, 2050);
 }
 
 function renderizarMarcadores() {
@@ -248,9 +250,10 @@ function irParaAtendimento(indice, momentoInadequado = false) {
   const cliente = clientes[indice];
   estado.momentoInadequado = momentoInadequado;
   vendedor.src = framesAndandoAtuais()[0];
+  vendedor.style.transform = 'translateX(-50%)';
   vendedor.style.transition = 'left .9s ease, top .9s ease';
   vendedor.style.left = `${cliente.x}%`;
-  vendedor.style.top = `${Math.min(cliente.y + 18, 72)}%`;
+  vendedor.style.top = `${Math.min(cliente.y + 4, 58)}%`;
   setTimeout(() => {
     const escritorio = document.getElementById('tela-escritorio');
     escritorio.classList.add('zoom-saindo');
