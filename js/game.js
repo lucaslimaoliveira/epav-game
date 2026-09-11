@@ -6,6 +6,11 @@ const estado = {
   pontuacaoAtendimento: 0,
   pontuacaoTotal: 0,
   erros: 0,
+  acertos: 0,
+  decisoesRespondidas: 0,
+  satisfacaoAcumulada: 0,
+  objecoesCorretas: 0,
+  objecoesRespondidas: 0,
   primeiraEntradaEscritorio: true,
   clientesLiberados: new Set(),
   temporizadores: new Map(),
@@ -14,7 +19,7 @@ const estado = {
   etapa: 'menu'
 };
 
-const CHAVE_PROGRESSO = 'progressoEpavV1';
+const CHAVE_PROGRESSO = 'progressoEpavV2';
 
 const tabelaPontuacao = {
   observacao:  { excelente: 100, boa: 60, neutra: 0, ruim: -100, muitoRuim: -200 },
@@ -46,6 +51,11 @@ function iniciarJogo() {
     pontuacaoAtendimento: 0,
     pontuacaoTotal: 0,
     erros: 0,
+    acertos: 0,
+    decisoesRespondidas: 0,
+    satisfacaoAcumulada: 0,
+    objecoesCorretas: 0,
+    objecoesRespondidas: 0,
     primeiraEntradaEscritorio: true,
     clientesLiberados: new Set(),
     temporizadores: new Map(),
@@ -175,7 +185,7 @@ function iniciarAtendimento(cliente) {
   estado.etapa = 'dialogo';
   if (estado.momentoInadequado) {
     estado.satisfacao = Math.max(0, estado.satisfacao - 18);
-    estado.pontuacaoAtendimento -= 200;
+    estado.pontuacaoAtendimento -= 10;
     estado.erros += 1;
   }
   const retrato = document.getElementById('cliente-retrato');
@@ -222,22 +232,29 @@ function escolherOpcao(opcao, botao) {
   estado.satisfacao = Math.max(0, Math.min(100, estado.satisfacao + opcao.efeitoSatisfacao));
   let pontos = 0;
   if (opcao.categoria && opcao.qualidade) {
-    pontos = tabelaPontuacao[opcao.categoria][opcao.qualidade];
+    pontos = Number.isFinite(opcao.pontos) ? opcao.pontos : tabelaPontuacao[opcao.categoria][opcao.qualidade];
     estado.pontuacaoAtendimento += pontos;
-    if (pontos < 0) estado.erros += 1;
+    estado.decisoesRespondidas += 1;
+    if (opcao.correta) estado.acertos += 1;
+    else estado.erros += 1;
+    if (opcao.categoria === 'objecao') {
+      estado.objecoesRespondidas += 1;
+      if (opcao.correta) estado.objecoesCorretas += 1;
+    }
     mostrarPontosFlutuantes(pontos, botao);
   }
   const vendedor = document.getElementById('vendedor-dialogo');
-  if (pontos < 0) vendedor.src = 'assets/images/vendedor-frustrado.png';
+  if (!opcao.correta) vendedor.src = 'assets/images/vendedor-frustrado.png';
   else if (opcao.categoria === 'pergunta' || opcao.categoria === 'necessidade') vendedor.src = 'assets/images/vendedor-pensando.png';
-  else if (pontos >= 400) vendedor.src = 'assets/images/vendedor-feliz.png';
+  else if (pontos >= 10) vendedor.src = 'assets/images/vendedor-feliz.png';
   else vendedor.src = 'assets/images/vendedor-falando.png';
+  if (opcao.resposta) document.getElementById('texto-cliente').textContent = opcao.resposta;
   document.getElementById('feedback-decisao').textContent = opcao.feedback || '';
   atualizarBarraSatisfacao();
   document.getElementById('pontos-dialogo').textContent = estado.pontuacaoAtendimento;
   estado.noAtual = typeof opcao.proximoNo === 'function' ? opcao.proximoNo(estado) : opcao.proximoNo;
   salvarProgresso();
-  setTimeout(renderizarNo, 1150);
+  setTimeout(renderizarNo, estado.noAtual === null ? 1800 : 1150);
 }
 
 function mostrarPontosFlutuantes(valor, referencia) {
@@ -265,20 +282,18 @@ function emojiSatisfacao(valor) {
 }
 
 function finalizarAtendimento() {
-  const bonus = estado.satisfacao >= 80 ? 300 : estado.satisfacao >= 65 ? 150 : 0;
-  estado.bonusAtendimento = bonus;
-  estado.pontuacaoAtendimento += bonus;
+  estado.bonusAtendimento = 0;
   estado.pontuacaoTotal += estado.pontuacaoAtendimento;
+  estado.satisfacaoAcumulada += estado.satisfacao;
   estado.etapa = 'resultado';
   salvarProgresso();
   mostrarResultadoAtendimento();
 }
 
 function mostrarResultadoAtendimento() {
-  const bonus = estado.bonusAtendimento;
   const titulo = estado.satisfacao >= 80 ? 'Conexão excelente!' : estado.satisfacao >= 60 ? 'Boa conversa!' : 'Há espaço para melhorar';
   document.getElementById('titulo-resultado').textContent = titulo;
-  document.getElementById('resumo-atendimento').textContent = `${estado.clienteAtual.nome}: ${estado.pontuacaoAtendimento} pontos · satisfação ${estado.satisfacao}% ${emojiSatisfacao(estado.satisfacao)}${bonus ? ` · bônus +${bonus}` : ''}`;
+  document.getElementById('resumo-atendimento').textContent = `${estado.clienteAtual.nome}: ${estado.pontuacaoAtendimento} de ${estado.clienteAtual.decisoes * 10} pontos · satisfação ${estado.satisfacao}% ${emojiSatisfacao(estado.satisfacao)}`;
   document.getElementById('licao-atendimento').textContent = estado.clienteAtual.licao;
   mostrarTela('tela-resultado');
 }
@@ -287,20 +302,34 @@ function continuarAposResultado() {
   estado.indiceClienteAtual += 1;
   estado.momentoInadequado = false;
   if (estado.indiceClienteAtual < clientes.length) mostrarEscritorio();
-  else finalizarJogo();
+  else {
+    mostrarEscritorio();
+    setTimeout(finalizarJogo, 1400);
+  }
 }
 
 function calcularClassificacao(pontuacao) {
-  if (pontuacao >= 9600) return 'Mestre do EPAV';
-  if (pontuacao >= 7600) return 'Vendedor Destaque';
-  if (pontuacao >= 5200) return 'Bom Vendedor';
-  return 'Vendedor em Formação';
+  if (pontuacao >= 300) return 'Mestre do EPAV';
+  if (pontuacao >= 200) return 'Vendedor Destaque';
+  if (pontuacao >= 100) return 'Bom Vendedor';
+  return 'Vendedor Iniciante';
 }
 
 function finalizarJogo() {
   const classificacao = calcularClassificacao(estado.pontuacaoTotal);
+  const totalDecisoes = clientes.reduce((total, cliente) => total + cliente.decisoes, 0);
+  const satisfacaoMedia = Math.round(estado.satisfacaoAcumulada / clientes.length);
+  const desempenhoObjecoes = estado.objecoesRespondidas
+    ? Math.round((estado.objecoesCorretas / estado.objecoesRespondidas) * 100) : 0;
   document.getElementById('classificacao-final').textContent = classificacao;
-  document.getElementById('pontuacao-final').textContent = `${estado.pontuacaoTotal.toLocaleString('pt-BR')} pontos · ${estado.erros} decisões a revisar`;
+  document.getElementById('mensagem-final').textContent = classificacao === 'Mestre do EPAV'
+    ? 'Você conseguiu atender todos os clientes com excelência.'
+    : 'Você atendeu todos os clientes. Reveja suas escolhas e tente superar seu resultado.';
+  document.getElementById('clientes-final').textContent = `${clientes.length}/${clientes.length}`;
+  document.getElementById('decisoes-final').textContent = `${estado.acertos}/${totalDecisoes}`;
+  document.getElementById('satisfacao-final').textContent = `${satisfacaoMedia}%`;
+  document.getElementById('objecoes-final').textContent = `${desempenhoObjecoes}%`;
+  document.getElementById('pontuacao-final').textContent = `${estado.pontuacaoTotal}/400 pontos · ${estado.erros} decisões a revisar`;
   document.getElementById('vendedor-final').src = classificacao === 'Mestre do EPAV'
     ? 'assets/images/vendedor-comemorando.png' : 'assets/images/vendedor-feliz.png';
   salvarTentativa(classificacao);
@@ -313,7 +342,7 @@ function salvarTentativa(classificacao) {
   const historico = lerHistorico();
   historico.push({
     data: new Date().toISOString(), pontuacao: estado.pontuacaoTotal, classificacao,
-    clientes: clientes.length, erros: estado.erros
+    clientes: clientes.length, erros: estado.erros, acertos: estado.acertos, maximo: 400, versao: 2
   });
   localStorage.setItem('historicoEpav', JSON.stringify(historico));
 }
@@ -324,9 +353,9 @@ function lerHistorico() {
 }
 
 function salvarProgresso() {
-  if (estado.etapa === 'menu') return;
+  if (estado.etapa === 'menu' || estado.indiceClienteAtual >= clientes.length) return;
   const progresso = {
-    versao: 1,
+    versao: 2,
     salvoEm: new Date().toISOString(),
     etapa: estado.etapa,
     indiceClienteAtual: estado.indiceClienteAtual,
@@ -336,6 +365,11 @@ function salvarProgresso() {
     pontuacaoAtendimento: estado.pontuacaoAtendimento,
     pontuacaoTotal: estado.pontuacaoTotal,
     erros: estado.erros,
+    acertos: estado.acertos,
+    decisoesRespondidas: estado.decisoesRespondidas,
+    satisfacaoAcumulada: estado.satisfacaoAcumulada,
+    objecoesCorretas: estado.objecoesCorretas,
+    objecoesRespondidas: estado.objecoesRespondidas,
     primeiraEntradaEscritorio: estado.primeiraEntradaEscritorio,
     clientesLiberados: [...estado.clientesLiberados],
     momentoInadequado: estado.momentoInadequado,
@@ -348,7 +382,7 @@ function lerProgresso() {
   try {
     const progresso = JSON.parse(localStorage.getItem(CHAVE_PROGRESSO) || 'null');
     const etapasValidas = ['escritorio', 'dialogo', 'resultado'];
-    if (!progresso || progresso.versao !== 1 || !etapasValidas.includes(progresso.etapa)) return null;
+    if (!progresso || progresso.versao !== 2 || !etapasValidas.includes(progresso.etapa)) return null;
     if (!Number.isInteger(progresso.indiceClienteAtual) || progresso.indiceClienteAtual < 0 || progresso.indiceClienteAtual >= clientes.length) return null;
     if (progresso.etapa !== 'escritorio' && !clientes.some(cliente => cliente.id === progresso.clienteId)) return null;
     return progresso;
@@ -374,6 +408,11 @@ function continuarPartidaSalva() {
     pontuacaoAtendimento: Number(progresso.pontuacaoAtendimento) || 0,
     pontuacaoTotal: Number(progresso.pontuacaoTotal) || 0,
     erros: Number(progresso.erros) || 0,
+    acertos: Number(progresso.acertos) || 0,
+    decisoesRespondidas: Number(progresso.decisoesRespondidas) || 0,
+    satisfacaoAcumulada: Number(progresso.satisfacaoAcumulada) || 0,
+    objecoesCorretas: Number(progresso.objecoesCorretas) || 0,
+    objecoesRespondidas: Number(progresso.objecoesRespondidas) || 0,
     primeiraEntradaEscritorio: false,
     clientesLiberados: new Set(Array.isArray(progresso.clientesLiberados) ? progresso.clientesLiberados : []),
     temporizadores: new Map(),
@@ -411,7 +450,11 @@ function mostrarHistorico() {
       item.className = 'item-historico';
       const numero = historico.length - indice;
       const data = new Date(tentativa.data).toLocaleDateString('pt-BR');
-      item.innerHTML = `<strong>Tentativa ${numero}</strong><strong>${tentativa.pontuacao.toLocaleString('pt-BR')} pts</strong><span>${tentativa.classificacao}</span><span>${data}</span><small>${tentativa.clientes || 5}/5 clientes · ${tentativa.erros ?? 0} decisões a revisar</small>`;
+      const pontuacao = tentativa.maximo
+        ? `${tentativa.pontuacao.toLocaleString('pt-BR')}/${tentativa.maximo} pts`
+        : `${tentativa.pontuacao.toLocaleString('pt-BR')} pts`;
+      const acertos = Number.isInteger(tentativa.acertos) ? ` · ${tentativa.acertos}/40 corretas` : ' · versão anterior';
+      item.innerHTML = `<strong>Tentativa ${numero}</strong><strong>${pontuacao}</strong><span>${tentativa.classificacao}</span><span>${data}</span><small>${tentativa.clientes || 5}/5 clientes${acertos} · ${tentativa.erros ?? 0} decisões a revisar</small>`;
       container.appendChild(item);
     });
   }
@@ -432,8 +475,12 @@ function atualizarResumoMenu() {
     resumo.textContent = `Partida salva · cliente ${cliente}/${clientes.length} · ${pontosSalvos.toLocaleString('pt-BR')} pontos`;
   } else if (!historico.length) resumo.textContent = 'Nenhuma missão concluída. Sua primeira negociação começa agora.';
   else {
-    const melhor = historico.reduce((a, b) => b.pontuacao > a.pontuacao ? b : a);
-    resumo.textContent = `Melhor resultado: ${melhor.pontuacao.toLocaleString('pt-BR')} pontos · ${melhor.classificacao} · ${historico.length} partida(s)`;
+    const historicoAtual = historico.filter(tentativa => tentativa.maximo === 400);
+    if (!historicoAtual.length) resumo.textContent = 'Nova missão disponível: 5 clientes e 40 decisões para dominar.';
+    else {
+      const melhor = historicoAtual.reduce((a, b) => b.pontuacao > a.pontuacao ? b : a);
+      resumo.textContent = `Melhor resultado: ${melhor.pontuacao}/400 pontos · ${melhor.classificacao} · ${historicoAtual.length} partida(s)`;
+    }
   }
 }
 

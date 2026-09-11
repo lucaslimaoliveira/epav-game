@@ -1,208 +1,575 @@
+const feedbackPorCategoria = {
+  abordagem: ['Você respeitou o momento e abriu espaço para conversar.', 'A abordagem criou pressão antes de entender o cliente.'],
+  pergunta: ['A pergunta aprofundou a necessidade sem presumir a resposta.', 'A pergunta conduziu cedo demais ou não investigou a necessidade real.'],
+  necessidade: ['Você conectou as pistas e confirmou a necessidade.', 'A resposta presumiu a solução antes de compreender todo o contexto.'],
+  oferta: ['A oferta foi ligada ao que o cliente realmente valoriza.', 'A oferta priorizou o produto, não a necessidade revelada.'],
+  objecao: ['Você acolheu a objeção e respondeu com um critério concreto.', 'A objeção foi minimizada ou respondida sem evidência.'],
+  fechamento: ['O fechamento confirmou o próximo passo sem pressionar.', 'O fechamento criou pressão e enfraqueceu a confiança construída.']
+};
+
+function criarNo(texto, escolhas, melhores, categoria, proximoNo, respostas = []) {
+  return {
+    texto,
+    opcoes: escolhas.map((escolha, indice) => {
+      const correta = melhores.includes(indice);
+      const resposta = Array.isArray(respostas) ? respostas[indice] : respostas;
+      return {
+        texto: escolha,
+        categoria,
+        qualidade: correta ? 'excelente' : 'ruim',
+        efeitoSatisfacao: correta ? 6 : -5,
+        pontos: correta ? 10 : 0,
+        correta,
+        feedback: feedbackPorCategoria[categoria][correta ? 0 : 1],
+        resposta: resposta || '',
+        proximoNo
+      };
+    })
+  };
+}
+
 const clientes = [
   {
-    id: "cliente1", nome: "Marcos", area: "Recursos Humanos", dificuldade: "Introdução",
-    perfil: "Tranquilo, prático e aberto a conversar.", status: "Finalizando uma ligação", x: 14, y: 43,
-    satisfacaoInicial: 58, tempoOcupadoInicial: 4500,
-    motivoOcupado: "Está terminando uma ligação. Espere o telefone baixar.",
-    licao: "Uma boa venda começa pelo momento certo e por uma pergunta simples.",
+    id: 'cliente1',
+    nome: 'Lucas',
+    area: 'Desafio 1 · Abordagem',
+    dificuldade: '⭐',
+    perfil: 'Mora sozinho e procura refeições práticas para a semana.',
+    status: 'Terminando uma tarefa',
+    x: 14,
+    y: 43,
+    satisfacaoInicial: 55,
+    tempoOcupadoInicial: 3500,
+    motivoOcupado: 'Está terminando uma coisa. Observe o momento antes de abordar.',
+    objetivo: 'Aprender a abordar, fazer perguntas e entender a necessidade.',
+    decisoes: 6,
+    licao: 'Aborde com respeito, investigue a rotina e só então relacione produto, praticidade e preço.',
     produtos: [
-      { nome: "Kit Prático", preco: 25, caracteristica: "pronto para consumo imediato" },
-      { nome: "Kit Econômico", preco: 15, caracteristica: "melhor custo-benefício" }
+      { nome: 'Porção Prática', preco: 24.90, caracteristica: 'preparo rápido e quantidade individual' },
+      { nome: 'Carne Versátil', preco: 22.90, caracteristica: 'serve diferentes refeições' }
     ],
-    noInicial: "abordagem",
+    noInicial: 'd1',
     dialogo: {
-      abordagem: { texto: "Oi! Agora posso falar. O que você trouxe hoje?", opcoes: [
-        { texto: "Antes de mostrar, posso saber o que facilitaria seu dia hoje?", categoria: "abordagem", qualidade: "excelente", efeitoSatisfacao: 9, feedback: "Você abriu espaço para entender a necessidade.", proximoNo: "descoberta" },
-        { texto: "Tenho dois kits. Quer ver?", categoria: "abordagem", qualidade: "boa", efeitoSatisfacao: 3, feedback: "Objetivo, mas ainda pouco investigativo.", proximoNo: "atalho" },
-        { texto: "Esse aqui é o que todo mundo compra.", categoria: "abordagem", qualidade: "ruim", efeitoSatisfacao: -8, feedback: "Popularidade não substitui entender o cliente.", proximoNo: "resistencia" }
-      ]},
-      descoberta: { texto: "Hoje estou indo de uma reunião para outra. Preciso de algo que não dê trabalho.", opcoes: [
-        { texto: "Então rapidez pesa mais que o menor preço, certo?", categoria: "necessidade", qualidade: "excelente", efeitoSatisfacao: 10, feedback: "Você confirmou a prioridade antes de oferecer.", proximoNo: "oferta" },
-        { texto: "O Kit Econômico custa menos.", categoria: "necessidade", qualidade: "ruim", efeitoSatisfacao: -5, feedback: "Você ouviu 'sem trabalho', não 'mais barato'.", proximoNo: "resistencia" }
-      ]},
-      atalho: { texto: "Posso, mas estou sem tempo. Qual resolve mais rápido?", opcoes: [
-        { texto: "O Kit Prático: já vem pronto e cabe na sua rotina de hoje.", categoria: "oferta", qualidade: "boa", efeitoSatisfacao: 7, feedback: "A oferta foi ligada ao contexto.", proximoNo: "fechamento" },
-        { texto: "O Econômico, porque é o mais barato.", categoria: "oferta", qualidade: "neutra", efeitoSatisfacao: -2, feedback: "Preço sozinho não responde à pressa.", proximoNo: "resistencia" }
-      ]},
-      resistencia: { texto: "Acho que você ainda não entendeu o que eu preciso.", opcoes: [
-        { texto: "Tem razão. O que mais importa: rapidez, quantidade ou preço?", categoria: "pergunta", qualidade: "excelente", efeitoSatisfacao: 9, feedback: "Reconhecer e perguntar recuperou a conversa.", proximoNo: "oferta" },
-        { texto: "Mas os dois kits são muito bons.", categoria: "objecao", qualidade: "ruim", efeitoSatisfacao: -9, feedback: "Repetir qualidade não esclarece valor.", proximoNo: "fechamento_fraco" }
-      ]},
-      oferta: { texto: "Rapidez, com certeza. O que você sugere?", opcoes: [
-        { texto: "Kit Prático — pronto para agora e sem preparo.", produto: 0, categoria: "oferta", qualidade: "excelente", efeitoSatisfacao: 10, feedback: "Produto, benefício e necessidade ficaram conectados.", proximoNo: "fechamento" },
-        { texto: "Kit Econômico — você economiza R$ 10.", produto: 1, categoria: "oferta", qualidade: "neutra", efeitoSatisfacao: 1, feedback: "É viável, mas não prioriza a necessidade principal.", proximoNo: "fechamento_fraco" }
-      ]},
-      fechamento: { texto: "Perfeito. Assim eu resolvo isso sem perder tempo.", opcoes: [
-        { texto: "Combinado! Posso separar o Kit Prático para você.", categoria: "fechamento", qualidade: "excelente", efeitoSatisfacao: 5, feedback: "Fechamento claro, sem pressão.", proximoNo: null }
-      ]},
-      fechamento_fraco: { texto: "Vou levar, mas ainda fiquei com algumas dúvidas.", opcoes: [
-        { texto: "Entendi. Na próxima eu confirmo melhor sua prioridade.", categoria: "fechamento", qualidade: "boa", efeitoSatisfacao: 2, feedback: "Você fechou e reconheceu o ponto de melhoria.", proximoNo: null }
-      ]}
+      d1: criarNo(
+        'Opa... você é do EPAV, né? Pode falar. Só estou terminando uma coisa aqui.',
+        [
+          'Vou ser rápido. Quero te mostrar alguns produtos que estão vendendo bastante.',
+          'Você está ocupado? Se estiver, posso voltar depois.',
+          'Preciso que você me diga o que costuma comprar.',
+          'Você tem que comprar alguma coisa hoje?'
+        ],
+        [1], 'abordagem', 'd2',
+        [
+          'Tudo bem, mas eu ainda não sei se tenho interesse.',
+          'Estou quase terminando. Pode falar.',
+          'Calma... nem começamos a conversar.',
+          'Não necessariamente. Só estou ouvindo.'
+        ]
+      ),
+      d2: criarNo(
+        'Moro sozinho. Quando estou tranquilo, cozinho; durante a semana é complicado e prefiro alguma coisa prática.',
+        [
+          'Então você precisa de coisas rápidas para os dias mais corridos?',
+          'Você deveria comprar refeições prontas.',
+          'Qual é o produto mais barato que você compra?',
+          'Você não gosta de cozinhar?'
+        ],
+        [0], 'necessidade', 'd3'
+      ),
+      d3: criarNo(
+        'Exatamente. Quando chego cansado, não quero passar muito tempo na cozinha. Praticidade importa, mas também não quero gastar muito.',
+        [
+          'Se tivesse que escolher, você prefere economizar ou ganhar tempo?',
+          'Você costuma gastar quanto por refeição?',
+          'Você compra bastante carne?',
+          'Quer que eu mostre logo alguns produtos?'
+        ],
+        [0, 1], 'pergunta', 'd4'
+      ),
+      d4: criarNo(
+        'Normalmente tento não passar muito de R$ 25 por refeição. Quero algo fácil de preparar e que possa usar em refeições diferentes.',
+        [
+          'É um produto muito bom e todo mundo compra.',
+          'Como você quer praticidade, essa opção é fácil de preparar e pode ser usada em mais de uma refeição.',
+          'Está em promoção, então é melhor comprar agora.',
+          'É mais caro, mas vale a pena.'
+        ],
+        [1], 'oferta', 'd5'
+      ),
+      d5: criarNo(
+        'Aí sim. Gosto de produto que não serve só para uma coisa. Mas, dependendo do preço, talvez eu não leve.',
+        [
+          'Mas é barato.',
+          'Se você não quiser gastar, pode escolher qualquer outra coisa.',
+          'Entendo. Como seu limite é R$ 25 por refeição, podemos pensar em uma quantidade que faça sentido.',
+          'Você está preocupado demais com preço.'
+        ],
+        [2], 'objecao', 'd6'
+      ),
+      d6: criarNo(
+        'Assim fica mais fácil. Não quero comprar sem saber quanto vou gastar. Essa opção faz sentido para minha rotina e acho que vou levar.',
+        [
+          'Então compra logo.',
+          'Quer que eu te ajude a escolher a quantidade ideal para não comprar demais?',
+          'Você tem certeza?',
+          'Eu sabia que você ia gostar.'
+        ],
+        [1], 'fechamento', null,
+        [
+          'Prefiro decidir sem pressão.',
+          'Pode ser. Quero começar com uma quantidade pequena. Valeu pela ajuda; você entendeu o que eu precisava.',
+          'Eu estava, mas agora fiquei em dúvida.',
+          'Gostei, mas não precisa decidir por mim.'
+        ]
+      )
     }
   },
   {
-    id: "cliente2", nome: "Renata", area: "Financeiro", dificuldade: "Objeção de preço",
-    perfil: "Educada, analítica e direta sobre custo.", status: "Revisando uma planilha", x: 33, y: 36,
-    satisfacaoInicial: 54, licao: "Preço vira valor quando o benefício é específico para a rotina do cliente.",
+    id: 'cliente2',
+    nome: 'Marina',
+    area: 'Desafio 2 · Descoberta',
+    dificuldade: '⭐⭐',
+    perfil: 'Tem uma rotina corrida e quer reduzir gastos com delivery.',
+    status: 'Organizando a agenda',
+    x: 33,
+    y: 36,
+    satisfacaoInicial: 52,
+    objetivo: 'Descobrir necessidades específicas e relacioná-las ao produto.',
+    decisoes: 7,
+    licao: 'Perguntas abertas transformam uma vontade vaga em critérios claros de escolha.',
     produtos: [
-      { nome: "Kit Prático", preco: 30, caracteristica: "não exige preparo" },
-      { nome: "Kit Completo", preco: 45, caracteristica: "mais variedade e quantidade" }
+      { nome: 'Frango Porcionado', preco: 34.90, caracteristica: 'versátil e fácil de preparar' },
+      { nome: 'Kit Semanal', preco: 59.90, caracteristica: 'porções para várias refeições' }
     ],
-    noInicial: "abordagem",
+    noInicial: 'd1',
     dialogo: {
-      abordagem: { texto: "Oi. Tenho alguns minutos antes de fechar esta planilha.", opcoes: [
-        { texto: "Vou ser breve: o que costuma pesar mais, praticidade ou quantidade?", categoria: "abordagem", qualidade: "excelente", efeitoSatisfacao: 8, feedback: "Você respeitou o tempo e abriu uma descoberta.", proximoNo: "descoberta" },
-        { texto: "Temos uma promoção imperdível hoje.", categoria: "abordagem", qualidade: "neutra", efeitoSatisfacao: -2, feedback: "Promoção sem contexto soa automática.", proximoNo: "preco" },
-        { texto: "Trouxe nosso kit mais completo.", categoria: "abordagem", qualidade: "ruim", efeitoSatisfacao: -7, feedback: "Você escolheu antes de investigar.", proximoNo: "preco" }
-      ]},
-      descoberta: { texto: "Praticidade, mas eu controlo bem meus gastos.", opcoes: [
-        { texto: "Qual gasto o preparo ou a perda de tempo costuma gerar para você?", categoria: "pergunta", qualidade: "excelente", efeitoSatisfacao: 8, feedback: "Você ampliou a conversa além da etiqueta de preço.", proximoNo: "preco" },
-        { texto: "Então vou direto no mais barato.", categoria: "pergunta", qualidade: "ruim", efeitoSatisfacao: -6, feedback: "Controle de gastos não significa escolher sempre o menor preço.", proximoNo: "preco" }
-      ]},
-      preco: { texto: "R$ 30? Parece caro para um kit pequeno.", opcoes: [
-        { texto: "Faz sentido comparar. Este já vem pronto e evita preparo e desperdício hoje.", categoria: "objecao", qualidade: "excelente", efeitoSatisfacao: 11, feedback: "Você acolheu a objeção e demonstrou valor concreto.", proximoNo: "oferta" },
-        { texto: "Mas a qualidade é ótima.", categoria: "objecao", qualidade: "neutra", efeitoSatisfacao: -2, feedback: "Qualidade genérica não responde à comparação.", proximoNo: "duvida" },
-        { texto: "Posso fazer mais barato.", categoria: "objecao", qualidade: "ruim", efeitoSatisfacao: -8, feedback: "Desconto imediato reduz valor sem entender a objeção.", proximoNo: "duvida" }
-      ]},
-      duvida: { texto: "Ainda não vi por que ele vale isso.", opcoes: [
-        { texto: "Você paga pela conveniência de usar agora e pela quantidade certa, sem sobra.", categoria: "objecao", qualidade: "boa", efeitoSatisfacao: 7, feedback: "Benefício e custo ficaram comparáveis.", proximoNo: "oferta" },
-        { texto: "É o preço da tabela.", categoria: "objecao", qualidade: "muitoRuim", efeitoSatisfacao: -12, feedback: "Defender a tabela ignora a dúvida da cliente.", proximoNo: "fechamento_fraco" }
-      ]},
-      oferta: { texto: "Certo. Qual opção combina melhor com o que eu disse?", opcoes: [
-        { texto: "Kit Prático — quantidade certa e zero preparo.", produto: 0, categoria: "oferta", qualidade: "excelente", efeitoSatisfacao: 9, feedback: "Oferta coerente com praticidade e controle.", proximoNo: "fechamento" },
-        { texto: "Kit Completo — mais itens por R$ 45.", produto: 1, categoria: "oferta", qualidade: "boa", efeitoSatisfacao: 3, feedback: "Tem valor, mas oferece mais do que ela pediu.", proximoNo: "fechamento_fraco" }
-      ]},
-      fechamento: { texto: "Agora entendi. O Prático evita desperdício. Vou levar.", opcoes: [
-        { texto: "Ótima escolha para a sua rotina de hoje.", categoria: "fechamento", qualidade: "excelente", efeitoSatisfacao: 5, feedback: "Você resumiu o motivo real da compra.", proximoNo: null }
-      ]},
-      fechamento_fraco: { texto: "Vou pensar melhor antes de decidir.", opcoes: [
-        { texto: "Claro. Posso deixar as duas opções anotadas para você comparar.", categoria: "fechamento", qualidade: "boa", efeitoSatisfacao: 3, feedback: "Você preservou a relação sem pressionar.", proximoNo: null }
-      ]}
+      d1: criarNo(
+        'Oi! Você é o aluno que está atendendo o pessoal hoje? Não estou procurando nada específico.',
+        [
+          'Então vou te mostrar alguns produtos até você encontrar um.',
+          'Tudo bem. Posso entender primeiro como é sua rotina e ver se aparece algo que faça sentido?',
+          'Mas você precisa comprar alguma coisa?',
+          'Você pode pelo menos olhar as promoções?'
+        ],
+        [1], 'abordagem', 'd2'
+      ),
+      d2: criarNo(
+        'Minha rotina é bem corrida. Trabalho o dia inteiro, chego tarde e às vezes peço comida, mas estou tentando diminuir isso.',
+        [
+          'Por quê?',
+          'Você deveria cozinhar mais.',
+          'Então você precisa de comida congelada.',
+          'Quanto você gasta com delivery?'
+        ],
+        [0], 'pergunta', 'd3'
+      ),
+      d3: criarNo(
+        'Porque acaba ficando caro. Às vezes peço só porque estou cansada; não é que eu não goste de cozinhar.',
+        [
+          'Você precisa de alguma coisa que possa deixar preparada antes?',
+          'Então compre qualquer coisa congelada.',
+          'Você não tem tempo nenhum?',
+          'Quer ver carnes?'
+        ],
+        [0], 'necessidade', 'd4'
+      ),
+      d4: criarNo(
+        'Se eu pudesse preparar algo no fim de semana e usar durante a semana, seria ótimo. Gosto de frango porque combina com arroz, salada e massa.',
+        [
+          'Então vou te mostrar o frango mais barato.',
+          'Você prefere peito, coxa ou tanto faz?',
+          'Frango é o que todo mundo compra.',
+          'Você gosta de frango mesmo?'
+        ],
+        [1], 'pergunta', 'd5'
+      ),
+      d5: criarNo(
+        'Normalmente peito. É mais versátil. Preço importa, mas praticidade é prioridade.',
+        [
+          'Esse produto é o melhor.',
+          'Esse produto pode ser usado em preparos diferentes e ajuda a deixar as refeições da semana mais práticas.',
+          'Esse produto está na promoção.',
+          'Todo mundo gosta dele.'
+        ],
+        [1], 'oferta', 'd6'
+      ),
+      d6: criarNo(
+        'Gostei da ideia, mas tenho medo de comprar e acabar não usando.',
+        [
+          'Não vai acontecer.',
+          'Então não compra.',
+          'Podemos começar com uma quantidade menor e você vê se encaixa na sua rotina.',
+          'Você precisa experimentar para saber.'
+        ],
+        [2], 'objecao', 'd7'
+      ),
+      d7: criarNo(
+        'Faz sentido. Assim não corro tanto risco e, se funcionar, já sei o que comprar da próxima vez.',
+        [
+          'Pode comprar?',
+          'Quer que eu monte uma sugestão pensando nas suas refeições da semana?',
+          'Você vai levar ou não?',
+          'Acho que já conversamos demais.'
+        ],
+        [1], 'fechamento', null,
+        [
+          'Ainda preciso entender melhor a sugestão.',
+          'Quero sim. Obrigada; eu nem procurava nada e agora sei o que pode facilitar minha semana.',
+          'Não precisa me pressionar.',
+          'Então é melhor encerrarmos por aqui.'
+        ]
+      )
     }
   },
   {
-    id: "cliente3", nome: "Eduardo", area: "Logística", dificuldade: "Necessidade oculta",
-    perfil: "Sociável; revela detalhes quando sente interesse genuíno.", status: "Tirou os fones para uma pausa", x: 52, y: 41,
-    satisfacaoInicial: 50, licao: "A primeira necessidade mencionada nem sempre é a necessidade completa.",
+    id: 'cliente3',
+    nome: 'Rafael',
+    area: 'Desafio 3 · Valor',
+    dificuldade: '⭐⭐⭐',
+    perfil: 'Pesquisa preço e compara quantidade e rendimento.',
+    status: 'Conferindo preços',
+    x: 52,
+    y: 41,
+    satisfacaoInicial: 49,
+    objetivo: 'Trabalhar preço, comparação e construção de valor.',
+    decisoes: 8,
+    licao: 'Comparar valor exige considerar quantidade, rendimento, uso real e desperdício.',
     produtos: [
-      { nome: "Kit Churrasco Família", preco: 120, caracteristica: "serve até 8 pessoas" },
-      { nome: "Kit Churrasco Individual", preco: 35, caracteristica: "serve até 2 pessoas" }
-    ], noInicial: "abordagem",
+      { nome: 'Carne Moída Família', preco: 42.90, caracteristica: 'quantidade adequada para três pessoas' },
+      { nome: 'Porção Compacta', preco: 29.90, caracteristica: 'menor volume e menor rendimento' }
+    ],
+    noInicial: 'd1',
     dialogo: {
-      abordagem: { texto: "E aí! Estou pensando no churrasco do fim de semana.", opcoes: [
-        { texto: "Boa! Para quantas pessoas e que tipo de encontro você imagina?", categoria: "pergunta", qualidade: "excelente", efeitoSatisfacao: 9, feedback: "Pergunta aberta revela contexto e escala.", proximoNo: "descoberta" },
-        { texto: "Então o Kit Churrasco é perfeito.", categoria: "abordagem", qualidade: "ruim", efeitoSatisfacao: -6, feedback: "Você ofereceu antes de saber o tamanho do encontro.", proximoNo: "quantidade" },
-        { texto: "Você prefere pagar menos ou ter mais comida?", categoria: "pergunta", qualidade: "neutra", efeitoSatisfacao: 0, feedback: "A pergunta força uma escolha cedo demais.", proximoNo: "quantidade" }
-      ]},
-      descoberta: { texto: "Devem ir seis pessoas. Quero curtir, não ficar preocupado se vai faltar.", opcoes: [
-        { texto: "Além da quantidade, facilidade para servir também importa?", categoria: "necessidade", qualidade: "excelente", efeitoSatisfacao: 9, feedback: "Você ouviu a ansiedade por trás do pedido.", proximoNo: "objecao" },
-        { texto: "Seis pessoas. Já sei o que vender.", categoria: "necessidade", qualidade: "boa", efeitoSatisfacao: 3, feedback: "Você identificou a escala, mas não confirmou o restante.", proximoNo: "objecao" }
-      ]},
-      quantidade: { texto: "Calma, ainda nem disse quantas pessoas vão.", opcoes: [
-        { texto: "Você tem razão. Quantas pessoas e o que não pode faltar?", categoria: "pergunta", qualidade: "excelente", efeitoSatisfacao: 9, feedback: "Você corrigiu a pressa com escuta ativa.", proximoNo: "descoberta" },
-        { texto: "O maior kit sempre garante.", categoria: "oferta", qualidade: "ruim", efeitoSatisfacao: -8, feedback: "Excesso também pode gerar desperdício.", proximoNo: "objecao" }
-      ]},
-      objecao: { texto: "R$ 120 é bastante. E se sobrar?", opcoes: [
-        { texto: "Para seis, ele dá margem sem exagero e você não precisa complementar depois.", categoria: "objecao", qualidade: "excelente", efeitoSatisfacao: 10, feedback: "Você tratou risco de falta e de sobra ao mesmo tempo.", proximoNo: "oferta" },
-        { texto: "Sobrar é melhor do que faltar.", categoria: "objecao", qualidade: "neutra", efeitoSatisfacao: -3, feedback: "A frase ignora o desperdício que ele teme.", proximoNo: "oferta" }
-      ]},
-      oferta: { texto: "Qual você levaria para seis pessoas?", opcoes: [
-        { texto: "Kit Família — serve até 8 e dá a margem tranquila que você quer.", produto: 0, categoria: "oferta", qualidade: "excelente", efeitoSatisfacao: 10, feedback: "Oferta baseada em quantidade e tranquilidade.", proximoNo: "fechamento" },
-        { texto: "Dois Kits Individuais — sai mais barato.", produto: 1, categoria: "oferta", qualidade: "muitoRuim", efeitoSatisfacao: -12, feedback: "Dois kits não atendem seis pessoas.", proximoNo: "fechamento_fraco" }
-      ]},
-      fechamento: { texto: "É isso. Quero aproveitar sem fazer conta toda hora.", opcoes: [
-        { texto: "Fechado. Vou separar o Família para o seu churrasco.", categoria: "fechamento", qualidade: "excelente", efeitoSatisfacao: 5, feedback: "Você fechou retomando a motivação do cliente.", proximoNo: null }
-      ]},
-      fechamento_fraco: { texto: "Não, assim vai faltar. Melhor deixar para outra hora.", opcoes: [
-        { texto: "Entendi. Obrigado por me alertar; vou calcular melhor na próxima.", categoria: "fechamento", qualidade: "neutra", efeitoSatisfacao: 1, feedback: "Assumir o erro preserva respeito, mas a venda foi perdida.", proximoNo: null }
-      ]}
+      d1: criarNo(
+        'Fala! Você está vendendo alguma coisa? Já vou avisando: eu pesquiso preço antes de comprar.',
+        [
+          'Mas nossos produtos têm qualidade.',
+          'Você está certo. Posso entender o que costuma comparar antes de falar de produto?',
+          'Então você provavelmente não vai comprar.',
+          'Tenho algumas promoções.'
+        ],
+        [1], 'abordagem', 'd2'
+      ),
+      d2: criarNo(
+        'Comparo principalmente preço e quantidade. Algumas vezes compro para mim e para minha família.',
+        [
+          'Quantas pessoas?',
+          'Então você precisa comprar bastante.',
+          'Sua família gosta de carne?',
+          'Você compra toda semana?'
+        ],
+        [0], 'pergunta', 'd3'
+      ),
+      d3: criarNo(
+        'Normalmente três pessoas. Cozinhamos à noite e compramos carne moída com frequência porque é fácil de usar.',
+        [
+          'Então compre a maior embalagem.',
+          'Você usa a carne moída em quais pratos?',
+          'Quanto você paga normalmente?',
+          'Tem uma promoção de carne.'
+        ],
+        [1], 'pergunta', 'd4'
+      ),
+      d4: criarNo(
+        'Usamos em hambúrguer, molho e recheio. Quando uma embalagem é maior, às vezes acaba sobrando.',
+        [
+          'Então você deveria comprar a menor.',
+          'O preço da embalagem não basta: também precisamos pensar em quanto vocês realmente vão usar.',
+          'É por isso que comprar barato pode ser ruim.',
+          'Então preço não importa.'
+        ],
+        [1], 'necessidade', 'd5'
+      ),
+      d5: criarNo(
+        'Exatamente. Procuro um tamanho adequado para três pessoas e que possa ser usado em vários pratos.',
+        [
+          'Essa é a mais barata.',
+          'Essa opção tem uma quantidade que pode funcionar para três pessoas e é versátil.',
+          'Essa é a mais vendida.',
+          'Essa é a melhor que temos.'
+        ],
+        [1], 'oferta', 'd6'
+      ),
+      d6: criarNo(
+        'Ela custa R$ 42,90? Encontrei uma parecida mais barata.',
+        [
+          'Mas essa aqui é melhor.',
+          'Então compre a outra.',
+          'Além do preço, compare quantidade e rendimento para ver qual realmente compensa para sua família.',
+          'Essa diferença não é grande.'
+        ],
+        [2], 'objecao', 'd7'
+      ),
+      d7: criarNo(
+        'Eu realmente comparo mais pelo quanto rende. Mesmo assim, não sei se vale a pena.',
+        [
+          'Vale sim.',
+          'O que faria essa compra valer a pena para você?',
+          'Você está pensando demais.',
+          'Posso te dar um desconto.'
+        ],
+        [1], 'objecao', 'd8'
+      ),
+      d8: criarNo(
+        'Valeria se eu conseguisse usar tudo sem sobrar e tivesse um preço bom por quantidade. Essa opção parece atender melhor.',
+        [
+          'Vai levar?',
+          'Se você quiser, podemos comparar mais uma opção antes de decidir.',
+          'Eu acho que você deveria levar.',
+          'Essa é sua última chance.'
+        ],
+        [1], 'fechamento', null,
+        [
+          'Não precisa me apressar.',
+          'Não precisa. Agora entendi a diferença e vou levar. Você me ajudou a comparar em vez de só tentar convencer.',
+          'Quero tomar minha própria decisão.',
+          'Nesse caso, prefiro não levar.'
+        ]
+      )
     }
   },
   {
-    id: "cliente4", nome: "Patrícia", area: "Gerência", dificuldade: "Duas objeções",
-    perfil: "Cética, experiente e pouco tolerante a promessas vagas.", status: "Terminou uma conversa", x: 70, y: 34,
-    satisfacaoInicial: 43, licao: "Clientes experientes confiam em evidência, clareza e limites honestos.",
+    id: 'cliente4',
+    nome: 'Camila',
+    area: 'Desafio 4 · Objeções',
+    dificuldade: '⭐⭐⭐⭐',
+    perfil: 'Tem pouco tempo, pouco espaço e várias preocupações de compra.',
+    status: 'Entre duas reuniões',
+    x: 70,
+    y: 34,
+    satisfacaoInicial: 46,
+    objetivo: 'Lidar com múltiplas objeções e manter o foco na necessidade.',
+    decisoes: 9,
+    licao: 'Múltiplas objeções ficam mais simples quando você organiza os critérios do cliente.',
     produtos: [
-      { nome: "Kit Premium", preco: 80, caracteristica: "qualidade certificada e seleção especial" },
-      { nome: "Kit Padrão", preco: 40, caracteristica: "essencial com menor investimento" }
-    ], noInicial: "abordagem",
+      { nome: 'Kit Compacto', preco: 74.90, caracteristica: 'porções variadas que ocupam pouco espaço' },
+      { nome: 'Kit Econômico', preco: 59.90, caracteristica: 'menor preço e embalagem maior' }
+    ],
+    noInicial: 'd1',
     dialogo: {
-      abordagem: { texto: "Pois não? Espero que não seja outro discurso pronto.", opcoes: [
-        { texto: "Também não gosto de discurso pronto. Posso começar pelo que faria diferença para você?", categoria: "abordagem", qualidade: "excelente", efeitoSatisfacao: 8, feedback: "Você reconheceu o ceticismo sem confrontar.", proximoNo: "descoberta" },
-        { texto: "Garanto que nosso produto é o melhor.", categoria: "abordagem", qualidade: "muitoRuim", efeitoSatisfacao: -11, feedback: "Promessa absoluta confirma a desconfiança.", proximoNo: "desconfianca" },
-        { texto: "Vou mostrar as opções e você decide.", categoria: "abordagem", qualidade: "neutra", efeitoSatisfacao: 0, feedback: "Respeitosa, mas transfere todo o trabalho à cliente.", proximoNo: "descoberta" }
-      ]},
-      descoberta: { texto: "Quero algo confiável para presentear, mas não pago só por aparência.", opcoes: [
-        { texto: "O que provaria qualidade para você: origem, seleção ou apresentação?", categoria: "pergunta", qualidade: "excelente", efeitoSatisfacao: 9, feedback: "Você pediu critérios verificáveis.", proximoNo: "objecao1" },
-        { texto: "O Premium tem uma embalagem bonita.", categoria: "necessidade", qualidade: "ruim", efeitoSatisfacao: -7, feedback: "Ela acabou de dizer que aparência não basta.", proximoNo: "desconfianca" }
-      ]},
-      desconfianca: { texto: "É exatamente esse tipo de frase que todo vendedor usa.", opcoes: [
-        { texto: "Justo. Em vez de prometer, posso comparar os critérios objetivos dos dois kits.", categoria: "objecao", qualidade: "excelente", efeitoSatisfacao: 10, feedback: "Transparência recuperou credibilidade.", proximoNo: "objecao1" },
-        { texto: "Você precisa confiar em mim.", categoria: "objecao", qualidade: "muitoRuim", efeitoSatisfacao: -13, feedback: "Confiança não se exige; se constrói.", proximoNo: "fechamento_fraco" }
-      ]},
-      objecao1: { texto: "Seleção e origem. Mas ainda acho R$ 80 caro.", opcoes: [
-        { texto: "Concordo que é um investimento. O Premium certifica a seleção; o Padrão reduz custo sem essa curadoria.", categoria: "objecao", qualidade: "excelente", efeitoSatisfacao: 11, feedback: "Você explicou a diferença sem desmerecer a opção barata.", proximoNo: "objecao2" },
-        { texto: "Posso dizer que está em promoção.", categoria: "objecao", qualidade: "muitoRuim", efeitoSatisfacao: -14, feedback: "Inventar urgência quebra confiança.", proximoNo: "fechamento_fraco" }
-      ]},
-      objecao2: { texto: "E se a pessoa não gostar?", opcoes: [
-        { texto: "Não dá para garantir gosto pessoal. Posso garantir os critérios de seleção e mostrar exatamente o que vem.", categoria: "objecao", qualidade: "excelente", efeitoSatisfacao: 12, feedback: "Limite honesto aumenta confiança.", proximoNo: "oferta" },
-        { texto: "Todo mundo gosta.", categoria: "objecao", qualidade: "ruim", efeitoSatisfacao: -9, feedback: "Generalização não elimina o risco percebido.", proximoNo: "oferta" }
-      ]},
-      oferta: { texto: "Com essa diferença clara, qual você recomenda para presente?", opcoes: [
-        { texto: "Kit Premium — pela seleção certificada, que é o seu critério principal.", produto: 0, categoria: "oferta", qualidade: "excelente", efeitoSatisfacao: 9, feedback: "Recomendação sustentada pelo critério da cliente.", proximoNo: "fechamento" },
-        { texto: "Kit Padrão — é mais barato e também serve.", produto: 1, categoria: "oferta", qualidade: "boa", efeitoSatisfacao: 2, feedback: "É honesto, mas não atende tão bem ao objetivo de presentear.", proximoNo: "fechamento_fraco" }
-      ]},
-      fechamento: { texto: "Agora sim: você explicou sem exagerar. Vou levar o Premium.", opcoes: [
-        { texto: "Perfeito. Vou conferir o conteúdo com você antes de fechar.", categoria: "fechamento", qualidade: "excelente", efeitoSatisfacao: 5, feedback: "A conferência reforça segurança.", proximoNo: null }
-      ]},
-      fechamento_fraco: { texto: "Prefiro não decidir hoje.", opcoes: [
-        { texto: "Sem problema. Deixo a comparação para você avaliar com calma.", categoria: "fechamento", qualidade: "boa", efeitoSatisfacao: 3, feedback: "Você encerrou sem pressão e preservou a relação.", proximoNo: null }
-      ]}
+      d1: criarNo(
+        'Você pode falar, mas já adianto que estou com pouco tempo.',
+        [
+          'Qual produto você quer?',
+          'Antes de falar de produto, o que costuma ser mais difícil para você ao comprar comida?',
+          'Então vou mostrar só uma promoção.',
+          'Você pode voltar quando estiver livre.'
+        ],
+        [1], 'abordagem', 'd2'
+      ),
+      d2: criarNo(
+        'Planejamento. Compro coisas sem pensar muito e depois percebo que faltou alguma coisa.',
+        [
+          'Você precisa fazer uma lista.',
+          'Isso acontece porque você esquece ou porque não sabe o que vai precisar?',
+          'Então compre mais produtos.',
+          'Eu também sou assim.'
+        ],
+        [1], 'pergunta', 'd3'
+      ),
+      d3: criarNo(
+        'Mais porque não sei o que vou usar durante a semana. Também não gosto de ficar muito tempo preparando comida.',
+        [
+          'Então você quer praticidade.',
+          'Você cozinha todos os dias?',
+          'Qual produto você mais compra?',
+          'Então você precisa de congelados.'
+        ],
+        [1], 'pergunta', 'd4'
+      ),
+      d4: criarNo(
+        'Cozinho talvez três vezes por semana. Nos outros dias como fora ou peço algo. Produtos armazenáveis ajudariam, mas não quero encher meu freezer.',
+        [
+          'Então compre pouco.',
+          'Quanto espaço você costuma ter disponível?',
+          'Esse produto ocupa pouco espaço.',
+          'Mas vale a pena.'
+        ],
+        [1], 'pergunta', 'd5'
+      ),
+      d5: criarNo(
+        'Meu freezer não é muito grande e tenho outras coisas. Quantidade e espaço importam. E provavelmente vai ficar caro.',
+        [
+          'Não vai.',
+          'Qual valor você considera confortável para essa compra?',
+          'É um pouco caro mesmo.',
+          'Tem produtos mais baratos.'
+        ],
+        [1], 'objecao', 'd6'
+      ),
+      d6: criarNo(
+        'Não queria gastar mais de R$ 80, mas também não quero comprar só porque está dentro do orçamento.',
+        [
+          'Claro, mas está barato.',
+          'Concordo. O produto precisa fazer sentido para sua rotina também.',
+          'Então é melhor não comprar.',
+          'Você é difícil de convencer.'
+        ],
+        [1], 'objecao', 'd7'
+      ),
+      d7: criarNo(
+        'Exatamente. Precisamos considerar espaço, praticidade e valor. Qual opção você mostraria?',
+        [
+          'Mostrar o produto mais barato.',
+          'Mostrar o produto que melhor atende à rotina explicada.',
+          'Mostrar o produto mais vendido.',
+          'Mostrar o produto com maior embalagem.'
+        ],
+        [1], 'oferta', 'd8'
+      ),
+      d8: criarNo(
+        'Esse parece interessante. Pode ser usado em preparos diferentes sem uma quantidade enorme, mas não sei se vou gostar.',
+        [
+          'Você só vai saber se experimentar.',
+          'Podemos começar com uma quantidade menor e avaliar se combina com sua rotina.',
+          'Tenho certeza de que você vai gostar.',
+          'É um dos mais vendidos.'
+        ],
+        [1], 'objecao', 'd9'
+      ),
+      d9: criarNo(
+        'Assim fico mais confortável. A opção menor resolve parte do problema, ocupa pouco espaço e não passa do valor que eu queria.',
+        [
+          'Então pode finalizar.',
+          'Quer levar essa opção menor para testar primeiro?',
+          'Você vai comprar ou não?',
+          'Eu sabia que funcionaria.'
+        ],
+        [1], 'fechamento', null,
+        [
+          'Ainda quero confirmar a decisão.',
+          'Vou testar. Gostei da conversa; você não ficou tentando empurrar produto.',
+          'Com essa pressão, prefiro não comprar.',
+          'Funcionou porque você ouviu, não porque já sabia.'
+        ]
+      )
     }
   },
   {
-    id: "cliente5", nome: "Ricardo", area: "Diretoria", dificuldade: "Desafio final",
-    perfil: "Direto, impaciente e exige lógica em cada recomendação.", status: "Tem exatamente dois minutos", x: 87, y: 39,
-    satisfacaoInicial: 38, licao: "No atendimento difícil, síntese só funciona quando vem apoiada por boas perguntas.",
+    id: 'cliente5',
+    nome: 'André',
+    area: 'Desafio 5 · Atendimento completo',
+    dificuldade: '⭐⭐⭐⭐⭐',
+    perfil: 'Questiona preço, quantidade, comparação e a própria necessidade.',
+    status: 'Disponível por poucos minutos',
+    x: 87,
+    y: 39,
+    satisfacaoInicial: 42,
+    objetivo: 'Juntar tudo o que foi aprendido nos atendimentos anteriores.',
+    decisoes: 10,
+    licao: 'Atendimento de verdade começa pela escuta e sustenta cada recomendação nos critérios do cliente.',
     produtos: [
-      { nome: "Kit Executivo", preco: 60, caracteristica: "reposição planejada e economia de tempo" },
-      { nome: "Kit Avulso", preco: 20, caracteristica: "compra pontual sem compromisso" }
-    ], noInicial: "abordagem",
+      { nome: 'Porção Bovina Individual', preco: 39.90, caracteristica: 'rápida, versátil e sem desperdício' },
+      { nome: 'Kit Bovino Família', preco: 69.90, caracteristica: 'maior volume e menor preço por quilo' }
+    ],
+    noInicial: 'd1',
     dialogo: {
-      abordagem: { texto: "Tenho dois minutos. Por que eu deveria te ouvir?", opcoes: [
-        { texto: "Porque em 20 segundos eu descubro se consigo poupar seu tempo. Posso fazer duas perguntas?", categoria: "abordagem", qualidade: "excelente", efeitoSatisfacao: 9, feedback: "Você ofereceu valor e definiu um limite claro.", proximoNo: "perguntas" },
-        { texto: "Porque temos o melhor preço do escritório.", categoria: "abordagem", qualidade: "ruim", efeitoSatisfacao: -10, feedback: "Preço sem relevância desperdiça o pouco tempo disponível.", proximoNo: "pressao" },
-        { texto: "Prometo ser rápido. Veja nosso catálogo.", categoria: "abordagem", qualidade: "neutra", efeitoSatisfacao: -4, feedback: "Entregar um catálogo transfere esforço ao cliente.", proximoNo: "pressao" }
-      ]},
-      perguntas: { texto: "Duas. Seja objetivo.", opcoes: [
-        { texto: "Você compra isso com frequência? E o que mais incomoda nesse processo hoje?", categoria: "pergunta", qualidade: "excelente", efeitoSatisfacao: 10, feedback: "Frequência e dor revelam potencial de recorrência.", proximoNo: "necessidade" },
-        { texto: "Quanto pretende gastar?", categoria: "pergunta", qualidade: "neutra", efeitoSatisfacao: 0, feedback: "Orçamento importa, mas sozinho não revela valor.", proximoNo: "pressao" }
-      ]},
-      necessidade: { texto: "Compro toda semana. O que me irrita é precisar parar para resolver de novo.", opcoes: [
-        { texto: "Então a prioridade é reduzir decisões repetidas, não apenas o preço desta compra.", categoria: "necessidade", qualidade: "excelente", efeitoSatisfacao: 11, feedback: "Você sintetizou a necessidade real.", proximoNo: "objecao" },
-        { texto: "Ótimo, posso vender uma quantidade maior.", categoria: "necessidade", qualidade: "ruim", efeitoSatisfacao: -7, feedback: "Quantidade não é automaticamente conveniência.", proximoNo: "objecao" }
-      ]},
-      pressao: { texto: "Você já gastou metade do tempo e ainda não disse nada útil.", opcoes: [
-        { texto: "Tem razão. Uma pergunta: você quer resolver hoje ou reduzir compras futuras?", categoria: "pergunta", qualidade: "boa", efeitoSatisfacao: 6, feedback: "Uma pergunta decisiva recuperou foco.", proximoNo: "necessidade_curta" },
-        { texto: "Só mais um minuto para eu explicar tudo.", categoria: "abordagem", qualidade: "muitoRuim", efeitoSatisfacao: -15, feedback: "Insistir viola o limite declarado.", proximoNo: "fechamento_fraco" }
-      ]},
-      necessidade_curta: { texto: "Reduzir compras futuras. Faço isso toda semana.", opcoes: [
-        { texto: "Entendi: menos interrupções recorrentes.", categoria: "necessidade", qualidade: "boa", efeitoSatisfacao: 7, feedback: "Você encontrou a necessidade sob pressão.", proximoNo: "objecao" }
-      ]},
-      objecao: { texto: "O Executivo custa três vezes mais. Qual a vantagem real?", opcoes: [
-        { texto: "Ele cobre mais de uma compra e evita repetir esse processo. O ganho é tempo planejado, não desconto.", categoria: "objecao", qualidade: "excelente", efeitoSatisfacao: 12, feedback: "A resposta compara custo com a dor real.", proximoNo: "oferta" },
-        { texto: "É premium e executivos costumam preferir.", categoria: "objecao", qualidade: "muitoRuim", efeitoSatisfacao: -14, feedback: "Rótulo e status não demonstram vantagem.", proximoNo: "fechamento_fraco" }
-      ]},
-      oferta: { texto: "Última pergunta: qual opção você recomenda e por quê?", opcoes: [
-        { texto: "Kit Executivo — reduz suas compras semanais e devolve tempo à sua agenda.", produto: 0, categoria: "oferta", qualidade: "excelente", efeitoSatisfacao: 12, feedback: "Recomendação curta, lógica e personalizada.", proximoNo: "fechamento" },
-        { texto: "Kit Avulso — custa menos hoje.", produto: 1, categoria: "oferta", qualidade: "ruim", efeitoSatisfacao: -8, feedback: "Economiza hoje, mas mantém a dor semanal.", proximoNo: "fechamento_fraco" }
-      ]},
-      fechamento: { texto: "Objetivo e bem justificado. Separe o Executivo.", opcoes: [
-        { texto: "Fechado. Confirmo a reposição antes de sair.", categoria: "fechamento", qualidade: "excelente", efeitoSatisfacao: 6, feedback: "Você confirmou o próximo passo sem prolongar.", proximoNo: null }
-      ]},
-      fechamento_fraco: { texto: "Os dois minutos acabaram. Hoje não.", opcoes: [
-        { texto: "Entendido. Obrigado pelo tempo; não vou insistir.", categoria: "fechamento", qualidade: "boa", efeitoSatisfacao: 3, feedback: "Respeitar o limite protege uma oportunidade futura.", proximoNo: null }
-      ]}
+      d1: criarNo(
+        'Você é do EPAV? Pode falar, mas vou ser sincero: não estou muito interessado em comprar nada hoje.',
+        [
+          'Tudo bem, então vou procurar outra pessoa.',
+          'Posso entender o que você procura e, se não fizer sentido, paramos por aqui.',
+          'Mas você precisa conhecer os produtos.',
+          'Tem certeza? Temos promoções.'
+        ],
+        [1], 'abordagem', 'd2'
+      ),
+      d2: criarNo(
+        'Minha rotina é corrida. Às vezes cozinho e às vezes compro pronto.',
+        [
+          'Então você precisa de comida pronta.',
+          'Quando compra pronto, normalmente é por falta de tempo ou por praticidade?',
+          'Quanto você gasta?',
+          'Você não gosta de cozinhar?'
+        ],
+        [1], 'pergunta', 'd3'
+      ),
+      d3: criarNo(
+        'É mais por falta de tempo. Gosto de cozinhar, só não quero passar duas horas fazendo comida.',
+        [
+          'Então você precisa de algo rápido.',
+          'Quanto tempo você considera razoável para preparar uma refeição?',
+          'Você gosta de carne?',
+          'Quer ver algumas opções?'
+        ],
+        [1], 'pergunta', 'd4'
+      ),
+      d4: criarNo(
+        'Uns 30 minutos, no máximo. Durante a semana preparo só para mim e prefiro carne bovina.',
+        [
+          'Então vou te mostrar carne bovina.',
+          'Você prefere uma carne rápida de preparar ou aceita esperar mais, desde que seja boa?',
+          'Você compra carne toda semana?',
+          'Qual é a carne mais barata?'
+        ],
+        [1], 'necessidade', 'd5'
+      ),
+      d5: criarNo(
+        'Quero algo rápido e não quero desperdiçar comida. A quantidade também é muito importante.',
+        [
+          'Mostrar a opção mais cara.',
+          'Mostrar uma opção que atenda rapidez, quantidade adequada e versatilidade.',
+          'Mostrar a maior embalagem.',
+          'Mostrar a promoção do dia.'
+        ],
+        [1], 'oferta', 'd6'
+      ),
+      d6: criarNo(
+        'A opção custa R$ 39,90? Caramba. Consigo encontrar carne mais barata.',
+        [
+          'Mas essa é melhor.',
+          'Existem opções mais baratas. Vamos comparar quantidade, praticidade e quanto você realmente vai usar.',
+          'A diferença não é tão grande.',
+          'Então compra a mais barata.'
+        ],
+        [1], 'objecao', 'd7'
+      ),
+      d7: criarNo(
+        'Ainda acho caro. Valeria a pena se eu usasse tudo, mas essa embalagem talvez seja grande demais para mim.',
+        [
+          'Você pode congelar.',
+          'Talvez essa não seja a melhor. Posso procurar uma quantidade menor que ainda atenda ao que você precisa.',
+          'Você pode comprar mesmo assim.',
+          'Não é tão grande.'
+        ],
+        [1], 'objecao', 'd8'
+      ),
+      d8: criarNo(
+        'Essa resposta eu gostei. A outra opção funciona melhor para uma pessoa, mas é mais cara por quilo.',
+        [
+          'Sim, mas é melhor.',
+          'Por quilo fica mais cara, mas podemos comparar quanto você vai usar e quanto vai sobrar.',
+          'Não precisa olhar o preço por quilo.',
+          'Essa é a que eu recomendo.'
+        ],
+        [1], 'objecao', 'd9'
+      ),
+      d9: criarNo(
+        'Pensando assim, talvez compense. Ainda estou em dúvida se realmente preciso comprar agora.',
+        [
+          'Você deveria comprar.',
+          'Não faz sentido comprar só por comprar. Mas pode valer a pena se resolver seu problema durante a semana.',
+          'Mas você já gostou.',
+          'Posso te dar um desconto.'
+        ],
+        [1], 'objecao', 'd10'
+      ),
+      d10: criarNo(
+        'Justo. Meu problema é falta de tempo e desperdício, e essa opção menor parece resolver melhor os dois pontos.',
+        [
+          'Então vai levar?',
+          'Quer começar com essa opção menor e ver se ela funciona na sua rotina?',
+          'Posso registrar seu pedido?',
+          'Essa é definitivamente a melhor escolha.'
+        ],
+        [1], 'fechamento', null,
+        [
+          'Não precisa me pressionar agora.',
+          'Vou fazer isso. Eu não queria comprar nada, mas você primeiro entendeu o que eu precisava. Isso foi atendimento de verdade.',
+          'Ainda não confirmei que quero comprar.',
+          'Prefiro decidir por conta própria.'
+        ]
+      )
     }
   }
 ];
