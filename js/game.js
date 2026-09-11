@@ -20,6 +20,7 @@ const estado = {
 };
 
 const CHAVE_PROGRESSO = 'progressoEpavV2';
+let temporizadoresCutscene = [];
 
 const tabelaPontuacao = {
   observacao:  { excelente: 100, boa: 60, neutra: 0, ruim: -100, muitoRuim: -200 },
@@ -185,7 +186,6 @@ function iniciarAtendimento(cliente) {
   estado.etapa = 'dialogo';
   if (estado.momentoInadequado) {
     estado.satisfacao = Math.max(0, estado.satisfacao - 18);
-    estado.pontuacaoAtendimento -= 10;
     estado.erros += 1;
   }
   const retrato = document.getElementById('cliente-retrato');
@@ -334,8 +334,83 @@ function finalizarJogo() {
     ? 'assets/images/vendedor-comemorando.png' : 'assets/images/vendedor-feliz.png';
   salvarTentativa(classificacao);
   localStorage.removeItem(CHAVE_PROGRESSO);
+  if (estado.pontuacaoTotal >= 400) iniciarCutscene('sucesso');
+  else if (estado.pontuacaoTotal <= 0) iniciarCutscene('fracasso');
+  else mostrarResultadoFinal();
+}
+
+function iniciarCutscene(tipo) {
+  temporizadoresCutscene.forEach(clearTimeout);
+  temporizadoresCutscene = [];
+  const sucesso = tipo === 'sucesso';
+  const cenario = document.getElementById('cutscene-cenario');
+  cenario.className = sucesso ? 'sucesso' : 'fracasso';
+  document.getElementById('cutscene-selo').textContent = sucesso ? 'PONTUAÇÃO MÁXIMA · 400/400' : 'PONTUAÇÃO MÍNIMA · 0/400';
+  document.getElementById('cutscene-titulo').textContent = sucesso ? 'Atendimento de verdade!' : 'Fim da linha!';
+  document.getElementById('cutscene-narracao').textContent = sucesso
+    ? 'Os clientes adoraram o atendimento de Kevin.'
+    : 'Os clientes perderam a confiança e decidiram expulsar Kevin.';
+  document.getElementById('cutscene-vendedor').src = sucesso
+    ? 'assets/images/vendedor-comemorando.png'
+    : 'assets/images/vendedor-frustrado.png';
+  document.getElementById('cutscene-vendedor').alt = sucesso
+    ? 'Vendedor EPAV comemorando com os clientes'
+    : 'Vendedor EPAV sendo expulso pelos clientes';
+
+  const container = document.getElementById('cutscene-clientes');
+  container.innerHTML = clientes.map((cliente, indice) =>
+    '<div class="cutscene-cliente" style="--atraso: ' + (indice * 90) + 'ms">' +
+      '<img src="assets/images/' + cliente.id + '.png" alt="' + cliente.nome + '">' +
+      '<span>' + cliente.nome + '</span>' +
+    '</div>'
+  ).join('');
+
+  const falas = sucesso
+    ? [
+        'Lucas: “Você entendeu exatamente o que eu precisava.”',
+        'Marina: “Você fez a escolha ficar muito mais fácil.”',
+        'Rafael: “Gostei de como você comparou as opções.”',
+        'Camila: “Você realmente prestou atenção no que eu falei.”',
+        'André: “Agora sim. Isso foi atendimento de verdade!”',
+        'Narrador: MESTRE DO EPAV!'
+      ]
+    : [
+        'Lucas: “Você nem tentou entender o que eu precisava.”',
+        'Marina: “Todas as respostas pareceram pressão de venda.”',
+        'Rafael: “Você ignorou tudo o que eu comparei.”',
+        'Camila: “Chega. Ninguém merece produto empurrado!”',
+        'André: “Atendimento encerrado. Fora do escritório!”',
+        'Narrador: Kevin foi expulso. Hora de treinar e tentar novamente.'
+      ];
+
+  const fala = document.getElementById('cutscene-fala');
+  fala.textContent = falas[0];
+  falas.slice(1).forEach((texto, indice) => {
+    temporizadoresCutscene.push(setTimeout(() => {
+      fala.textContent = texto;
+      fala.animate(
+        [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }],
+        { duration: 260 }
+      );
+    }, (indice + 1) * 850));
+  });
+  mostrarTela('tela-cutscene');
+}
+
+function encerrarCutscene() {
+  temporizadoresCutscene.forEach(clearTimeout);
+  temporizadoresCutscene = [];
+  mostrarResultadoFinal();
+}
+
+function mostrarResultadoFinal() {
   mostrarTela('tela-final');
-  if (classificacao === 'Mestre do EPAV') document.querySelector('.trofeu').animate([{ transform: 'scale(.5) rotate(-12deg)' }, { transform: 'scale(1.2) rotate(8deg)' }, { transform: 'scale(1)' }], { duration: 900 });
+  if (estado.pontuacaoTotal >= 400) {
+    document.querySelector('.trofeu').animate(
+      [{ transform: 'scale(.5) rotate(-12deg)' }, { transform: 'scale(1.2) rotate(8deg)' }, { transform: 'scale(1)' }],
+      { duration: 900 }
+    );
+  }
 }
 
 function salvarTentativa(classificacao) {
