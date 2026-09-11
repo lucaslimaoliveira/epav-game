@@ -9,8 +9,12 @@ const estado = {
   primeiraEntradaEscritorio: true,
   clientesLiberados: new Set(),
   temporizadores: new Map(),
-  momentoInadequado: false
+  momentoInadequado: false,
+  bonusAtendimento: 0,
+  etapa: 'menu'
 };
+
+const CHAVE_PROGRESSO = 'progressoEpavV1';
 
 const tabelaPontuacao = {
   observacao:  { excelente: 100, boa: 60, neutra: 0, ruim: -100, muitoRuim: -200 },
@@ -33,6 +37,7 @@ function mostrarTela(id) {
 
 function iniciarJogo() {
   estado.temporizadores.forEach(clearTimeout);
+  localStorage.removeItem(CHAVE_PROGRESSO);
   Object.assign(estado, {
     indiceClienteAtual: 0,
     clienteAtual: null,
@@ -44,12 +49,23 @@ function iniciarJogo() {
     primeiraEntradaEscritorio: true,
     clientesLiberados: new Set(),
     temporizadores: new Map(),
-    momentoInadequado: false
+    momentoInadequado: false,
+    bonusAtendimento: 0,
+    etapa: 'escritorio'
   });
   mostrarEscritorio();
 }
 
+function solicitarNovoJogo() {
+  if (!lerProgresso()) return iniciarJogo();
+  abrirModal('INICIAR NOVA PARTIDA?', 'A partida salva atual será substituída.', 'Novo jogo', () => {
+    fecharModal();
+    iniciarJogo();
+  });
+}
+
 function mostrarEscritorio() {
+  estado.etapa = 'escritorio';
   mostrarTela('tela-escritorio');
   const sprite = document.getElementById('vendedor-sprite');
   sprite.style.top = '';
@@ -62,6 +78,7 @@ function mostrarEscritorio() {
     sprite.src = 'assets/images/vendedor-parado.png';
   }
   renderizarMarcadores();
+  salvarProgresso();
 }
 
 function animarChegada() {
@@ -116,6 +133,7 @@ function renderizarMarcadores() {
           const timer = setTimeout(() => {
             estado.clientesLiberados.add(cliente.id);
             estado.temporizadores.delete(cliente.id);
+            salvarProgresso();
             renderizarMarcadores();
           }, cliente.tempoOcupadoInicial);
           estado.temporizadores.set(cliente.id, timer);
@@ -152,7 +170,9 @@ function iniciarAtendimento(cliente) {
   estado.clienteAtual = cliente;
   estado.satisfacao = cliente.satisfacaoInicial;
   estado.pontuacaoAtendimento = 0;
+  estado.bonusAtendimento = 0;
   estado.noAtual = cliente.noInicial;
+  estado.etapa = 'dialogo';
   if (estado.momentoInadequado) {
     estado.satisfacao = Math.max(0, estado.satisfacao - 18);
     estado.pontuacaoAtendimento -= 200;
@@ -166,6 +186,7 @@ function iniciarAtendimento(cliente) {
   document.getElementById('feedback-decisao').textContent = estado.momentoInadequado
     ? '−200 · MOMENTO INADEQUADO — Observe o contexto antes de abordar.' : '';
   mostrarTela('tela-dialogo');
+  salvarProgresso();
   renderizarNo();
   if (estado.momentoInadequado) {
     document.getElementById('vendedor-dialogo').src = 'assets/images/vendedor-surpreso.png';
@@ -215,6 +236,7 @@ function escolherOpcao(opcao, botao) {
   atualizarBarraSatisfacao();
   document.getElementById('pontos-dialogo').textContent = estado.pontuacaoAtendimento;
   estado.noAtual = typeof opcao.proximoNo === 'function' ? opcao.proximoNo(estado) : opcao.proximoNo;
+  salvarProgresso();
   setTimeout(renderizarNo, 1150);
 }
 
@@ -244,8 +266,16 @@ function emojiSatisfacao(valor) {
 
 function finalizarAtendimento() {
   const bonus = estado.satisfacao >= 80 ? 300 : estado.satisfacao >= 65 ? 150 : 0;
+  estado.bonusAtendimento = bonus;
   estado.pontuacaoAtendimento += bonus;
   estado.pontuacaoTotal += estado.pontuacaoAtendimento;
+  estado.etapa = 'resultado';
+  salvarProgresso();
+  mostrarResultadoAtendimento();
+}
+
+function mostrarResultadoAtendimento() {
+  const bonus = estado.bonusAtendimento;
   const titulo = estado.satisfacao >= 80 ? 'Conexão excelente!' : estado.satisfacao >= 60 ? 'Boa conversa!' : 'Há espaço para melhorar';
   document.getElementById('titulo-resultado').textContent = titulo;
   document.getElementById('resumo-atendimento').textContent = `${estado.clienteAtual.nome}: ${estado.pontuacaoAtendimento} pontos · satisfação ${estado.satisfacao}% ${emojiSatisfacao(estado.satisfacao)}${bonus ? ` · bônus +${bonus}` : ''}`;
@@ -274,6 +304,7 @@ function finalizarJogo() {
   document.getElementById('vendedor-final').src = classificacao === 'Mestre do EPAV'
     ? 'assets/images/vendedor-comemorando.png' : 'assets/images/vendedor-feliz.png';
   salvarTentativa(classificacao);
+  localStorage.removeItem(CHAVE_PROGRESSO);
   mostrarTela('tela-final');
   if (classificacao === 'Mestre do EPAV') document.querySelector('.trofeu').animate([{ transform: 'scale(.5) rotate(-12deg)' }, { transform: 'scale(1.2) rotate(8deg)' }, { transform: 'scale(1)' }], { duration: 900 });
 }
@@ -290,6 +321,82 @@ function salvarTentativa(classificacao) {
 function lerHistorico() {
   try { return JSON.parse(localStorage.getItem('historicoEpav') || '[]'); }
   catch { return []; }
+}
+
+function salvarProgresso() {
+  if (estado.etapa === 'menu') return;
+  const progresso = {
+    versao: 1,
+    salvoEm: new Date().toISOString(),
+    etapa: estado.etapa,
+    indiceClienteAtual: estado.indiceClienteAtual,
+    clienteId: estado.clienteAtual?.id || null,
+    noAtual: estado.noAtual,
+    satisfacao: estado.satisfacao,
+    pontuacaoAtendimento: estado.pontuacaoAtendimento,
+    pontuacaoTotal: estado.pontuacaoTotal,
+    erros: estado.erros,
+    primeiraEntradaEscritorio: estado.primeiraEntradaEscritorio,
+    clientesLiberados: [...estado.clientesLiberados],
+    momentoInadequado: estado.momentoInadequado,
+    bonusAtendimento: estado.bonusAtendimento
+  };
+  localStorage.setItem(CHAVE_PROGRESSO, JSON.stringify(progresso));
+}
+
+function lerProgresso() {
+  try {
+    const progresso = JSON.parse(localStorage.getItem(CHAVE_PROGRESSO) || 'null');
+    const etapasValidas = ['escritorio', 'dialogo', 'resultado'];
+    if (!progresso || progresso.versao !== 1 || !etapasValidas.includes(progresso.etapa)) return null;
+    if (!Number.isInteger(progresso.indiceClienteAtual) || progresso.indiceClienteAtual < 0 || progresso.indiceClienteAtual >= clientes.length) return null;
+    if (progresso.etapa !== 'escritorio' && !clientes.some(cliente => cliente.id === progresso.clienteId)) return null;
+    return progresso;
+  } catch {
+    return null;
+  }
+}
+
+function continuarPartidaSalva() {
+  const progresso = lerProgresso();
+  if (!progresso) {
+    localStorage.removeItem(CHAVE_PROGRESSO);
+    atualizarResumoMenu();
+    return;
+  }
+
+  estado.temporizadores.forEach(clearTimeout);
+  Object.assign(estado, {
+    indiceClienteAtual: progresso.indiceClienteAtual,
+    clienteAtual: progresso.clienteId ? clientes.find(cliente => cliente.id === progresso.clienteId) : null,
+    noAtual: progresso.noAtual,
+    satisfacao: Number(progresso.satisfacao) || 0,
+    pontuacaoAtendimento: Number(progresso.pontuacaoAtendimento) || 0,
+    pontuacaoTotal: Number(progresso.pontuacaoTotal) || 0,
+    erros: Number(progresso.erros) || 0,
+    primeiraEntradaEscritorio: false,
+    clientesLiberados: new Set(Array.isArray(progresso.clientesLiberados) ? progresso.clientesLiberados : []),
+    temporizadores: new Map(),
+    momentoInadequado: Boolean(progresso.momentoInadequado),
+    bonusAtendimento: Number(progresso.bonusAtendimento) || 0,
+    etapa: progresso.etapa
+  });
+
+  if (estado.etapa === 'escritorio') return mostrarEscritorio();
+  if (estado.etapa === 'resultado') return mostrarResultadoAtendimento();
+  restaurarAtendimento();
+}
+
+function restaurarAtendimento() {
+  const cliente = estado.clienteAtual;
+  const retrato = document.getElementById('cliente-retrato');
+  retrato.src = `assets/images/${cliente.id}.png`;
+  retrato.alt = `Retrato de ${cliente.nome}`;
+  document.getElementById('vendedor-dialogo').src = 'assets/images/vendedor-parado.png';
+  document.getElementById('nome-falante').textContent = cliente.nome.toUpperCase();
+  document.getElementById('feedback-decisao').textContent = 'PARTIDA RESTAURADA · Continue de onde parou.';
+  mostrarTela('tela-dialogo');
+  renderizarNo();
 }
 
 function mostrarHistorico() {
@@ -313,9 +420,17 @@ function mostrarHistorico() {
 
 function atualizarResumoMenu() {
   const historico = lerHistorico();
+  const progresso = lerProgresso();
   const resumo = document.getElementById('resumo-menu');
+  const botaoContinuar = document.getElementById('botao-continuar');
+  if (botaoContinuar) botaoContinuar.hidden = !progresso;
   if (!resumo) return;
-  if (!historico.length) resumo.textContent = 'Nenhuma missão concluída. Sua primeira negociação começa agora.';
+  if (progresso) {
+    const cliente = Math.min(progresso.indiceClienteAtual + 1, clientes.length);
+    const pontosEmAndamento = progresso.etapa === 'dialogo' ? Number(progresso.pontuacaoAtendimento || 0) : 0;
+    const pontosSalvos = Number(progresso.pontuacaoTotal || 0) + pontosEmAndamento;
+    resumo.textContent = `Partida salva · cliente ${cliente}/${clientes.length} · ${pontosSalvos.toLocaleString('pt-BR')} pontos`;
+  } else if (!historico.length) resumo.textContent = 'Nenhuma missão concluída. Sua primeira negociação começa agora.';
   else {
     const melhor = historico.reduce((a, b) => b.pontuacao > a.pontuacao ? b : a);
     resumo.textContent = `Melhor resultado: ${melhor.pontuacao.toLocaleString('pt-BR')} pontos · ${melhor.classificacao} · ${historico.length} partida(s)`;
@@ -331,7 +446,8 @@ function abrirModalReset() {
 }
 
 function confirmarSaida() {
-  abrirModal('SAIR DO ATENDIMENTO?', 'O progresso desta partida será perdido.', 'Sair', () => {
+  salvarProgresso();
+  abrirModal('SAIR DO ATENDIMENTO?', 'Seu progresso está salvo e poderá ser retomado pelo menu.', 'Sair', () => {
     fecharModal();
     mostrarTela('tela-menu');
   });

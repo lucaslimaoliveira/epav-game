@@ -42,6 +42,7 @@ h1, h2, p { overflow-wrap: anywhere; }
 .botao:hover, .botao:focus-visible { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 var(--ink); outline: 3px solid var(--gold); outline-offset: 3px; }
 .botao:active { transform: translate(3px,3px); box-shadow: 1px 1px 0 var(--ink); }
 .botao.primario { background: var(--coral); color: white; }
+.botao.continuar { background: var(--green); color: white; }
 .botao.secundario { background: var(--cream); }
 .botao.perigo { background: #ffcad0; color: #7a1830; }
 

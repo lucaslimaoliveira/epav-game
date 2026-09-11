@@ -15,7 +15,8 @@
         <h1 id="titulo-jogo">Fechando<br><span>Negócio</span></h1>
         <p class="menu-intro">Observe. Escute. Entenda. Só então ofereça.</p>
         <div class="menu-acoes">
-          <button class="botao primario" onclick="iniciarJogo()">▶ Jogar</button>
+          <button id="botao-continuar" class="botao continuar" onclick="continuarPartidaSalva()" hidden>▶ Continuar partida</button>
+          <button class="botao primario" onclick="solicitarNovoJogo()">▶ Novo jogo</button>
           <button class="botao secundario" onclick="mostrarHistorico()">▦ Histórico</button>
         </div>
         <div id="resumo-menu" class="resumo-menu" aria-live="polite"></div>
