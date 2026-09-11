@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#12304a">
+  <title>Fechando Negócio — EPAV</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main id="jogo">
+    <section id="tela-menu" class="tela ativa" aria-labelledby="titulo-jogo">
+      <div class="painel menu-painel">
+        <p class="sobretitulo">MISSÃO EPAV</p>
+        <h1 id="titulo-jogo">Fechando<br><span>Negócio</span></h1>
+        <p class="menu-intro">Observe. Escute. Entenda. Só então ofereça.</p>
+        <div class="menu-acoes">
+          <button class="botao primario" onclick="iniciarJogo()">▶ Jogar</button>
+          <button class="botao secundario" onclick="mostrarHistorico()">▦ Histórico</button>
+        </div>
+        <div id="resumo-menu" class="resumo-menu" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section id="tela-escritorio" class="tela" aria-label="Escritório">
+      <div id="cenario-escritorio">
+        <header class="hud-escritorio">
+          <div><small>CLIENTES</small><strong id="progresso-escritorio">0/5</strong></div>
+          <div><small>PONTOS</small><strong id="pontos-escritorio">0000</strong></div>
+        </header>
+        <div class="dica-observacao"><span>!</span> Observe o contexto antes de abordar.</div>
+        <img id="vendedor-sprite" src="assets/images/vendedor-parado.png" alt="Vendedor EPAV com braçadeira azul">
+        <div id="marcadores-clientes"></div>
+      </div>
+    </section>
+
+    <section id="tela-dialogo" class="tela" aria-label="Atendimento">
+      <div id="cenario-dialogo">
+        <header class="hud-dialogo">
+          <button class="botao-icone" onclick="confirmarSaida()" aria-label="Voltar ao menu">×</button>
+          <div class="medidor">
+            <span id="emoji-satisfacao">😐</span>
+            <div><small>SATISFAÇÃO</small><div id="barra-satisfacao"><div id="barra-satisfacao-preenchimento"></div></div></div>
+          </div>
+          <div class="pontos-dialogo"><small>PONTOS</small><strong id="pontos-dialogo">0</strong></div>
+        </header>
+        <div class="palco-personagens">
+          <img id="vendedor-dialogo" src="assets/images/vendedor-parado.png" alt="Vendedor EPAV">
+          <img id="cliente-retrato" src="" alt="Cliente">
+        </div>
+        <div class="dialogo-area">
+          <div id="balao-fala" class="painel-pixel">
+            <span id="nome-falante" class="etiqueta-falante">CLIENTE</span>
+            <p id="texto-cliente"></p>
+          </div>
+          <p id="feedback-decisao" class="feedback-decisao" aria-live="polite"></p>
+          <div id="opcoes-resposta"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tela-resultado" class="tela">
+      <div class="painel resultado-painel">
+        <p class="sobretitulo">ATENDIMENTO CONCLUÍDO</p>
+        <div class="selo-resultado">✓</div>
+        <h2 id="titulo-resultado">Boa conversa!</h2>
+        <p id="resumo-atendimento"></p>
+        <div id="licao-atendimento" class="licao"></div>
+        <button class="botao primario" onclick="continuarAposResultado()">Continuar ▶</button>
+      </div>
+    </section>
+
+    <section id="tela-final" class="tela">
+      <div class="painel resultado-painel">
+        <p class="sobretitulo">MISSÃO CONCLUÍDA</p>
+        <img id="vendedor-final" class="vendedor-final" src="assets/images/vendedor-feliz.png" alt="Vendedor EPAV celebrando">
+        <div class="trofeu">🏆</div>
+        <h2 id="classificacao-final"></h2>
+        <p id="pontuacao-final"></p>
+        <button class="botao primario" onclick="iniciarJogo()">Jogar novamente</button>
+        <button class="botao secundario" onclick="mostrarTela('tela-menu')">Menu</button>
+      </div>
+    </section>
+
+    <section id="tela-historico" class="tela">
+      <div class="historico-wrap">
+        <button class="botao-icone voltar" onclick="mostrarTela('tela-menu')" aria-label="Voltar">←</button>
+        <div class="painel historico-painel">
+          <p class="sobretitulo">ARQUIVO DE MISSÕES</p>
+          <h2>Histórico</h2>
+          <div id="lista-tentativas"></div>
+          <button class="botao perigo" onclick="abrirModalReset()">Resetar histórico</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="modal" class="modal" hidden>
+    <div class="modal-caixa painel-pixel" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+      <h2 id="modal-titulo">RESETAR HISTÓRICO?</h2>
+      <p id="modal-texto">Todo o histórico de partidas será apagado.</p>
+      <div class="modal-acoes">
+        <button class="botao secundario" onclick="fecharModal()">Cancelar</button>
+        <button id="modal-confirmar" class="botao perigo">Resetar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/clientsData.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
