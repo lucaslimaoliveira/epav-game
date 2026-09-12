@@ -21,9 +21,13 @@ const estado = {
   etapa: 'menu'
 };
 
-const CHAVE_PROGRESSO = 'progressoEpavV2';
+const CHAVE_PROGRESSO = 'progressoEpavV3';
 const CHAVE_PERFIL = 'perfilVendedorEpav';
 let temporizadoresCutscene = [];
+let temporizadorDigitacao = null;
+let elementoDigitacao = null;
+let concluirDigitacaoAtual = null;
+let temporizadorAvancoDialogo = null;
 
 const tabelaPontuacao = {
   observacao:  { excelente: 100, boa: 60, neutra: 0, ruim: -100, muitoRuim: -200 },
@@ -50,6 +54,61 @@ function imagemVendedor(expressao = 'parado') {
     return `assets/images/vendedora-${estadosFemininos[expressao] || expressao}.png`;
   }
   return `assets/images/vendedor-${expressao}.png`;
+}
+
+function personalizarTexto(texto = '') {
+  return texto.replaceAll('[VENDEDOR]', estado.nomeVendedor);
+}
+
+function cancelarDigitacao() {
+  clearTimeout(temporizadorDigitacao);
+  temporizadorDigitacao = null;
+  if (elementoDigitacao) elementoDigitacao.classList.remove('digitando');
+  elementoDigitacao = null;
+  concluirDigitacaoAtual = null;
+}
+
+function concluirDigitacao() {
+  if (!concluirDigitacaoAtual) return false;
+  concluirDigitacaoAtual();
+  return true;
+}
+
+function digitarTexto(elemento, texto, aoConcluir = () => {}) {
+  cancelarDigitacao();
+  const completo = personalizarTexto(texto);
+  let indice = 0;
+  let concluido = false;
+  elementoDigitacao = elemento;
+  elemento.textContent = '';
+  elemento.scrollTop = 0;
+  elemento.classList.add('digitando');
+
+  const finalizar = () => {
+    if (concluido) return;
+    concluido = true;
+    clearTimeout(temporizadorDigitacao);
+    elemento.textContent = completo;
+    elemento.classList.remove('digitando');
+    temporizadorDigitacao = null;
+    elementoDigitacao = null;
+    concluirDigitacaoAtual = null;
+    aoConcluir();
+  };
+
+  concluirDigitacaoAtual = finalizar;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !completo) return finalizar();
+
+  const escrever = () => {
+    indice += 1;
+    elemento.textContent = completo.slice(0, indice);
+    elemento.scrollTop = elemento.scrollHeight;
+    if (indice >= completo.length) return finalizar();
+    const caractere = completo[indice - 1];
+    const pausa = /[.!?]/.test(caractere) ? 75 : /[,;:]/.test(caractere) ? 38 : 13;
+    temporizadorDigitacao = setTimeout(escrever, pausa);
+  };
+  escrever();
 }
 
 function framesAndandoAtuais() {
@@ -116,6 +175,10 @@ function atualizarIdentidadeVendedor() {
 }
 
 function mostrarTela(id) {
+  if (id !== 'tela-dialogo') {
+    cancelarDigitacao();
+    clearTimeout(temporizadorAvancoDialogo);
+  }
   document.querySelectorAll('.tela').forEach(tela => tela.classList.remove('ativa'));
   const destino = document.getElementById(id);
   if (destino) destino.classList.add('ativa');
@@ -281,7 +344,7 @@ function iniciarAtendimento(cliente) {
   document.getElementById('vendedor-dialogo').src = imagemVendedor('parado');
   document.getElementById('nome-falante').textContent = cliente.nome.toUpperCase();
   document.getElementById('feedback-decisao').textContent = estado.momentoInadequado
-    ? '−200 · MOMENTO INADEQUADO — Observe o contexto antes de abordar.' : '';
+    ? 'MOMENTO INADEQUADO — Observe o contexto antes de abordar.' : '';
   mostrarTela('tela-dialogo');
   salvarProgresso();
   renderizarNo();
@@ -291,15 +354,24 @@ function iniciarAtendimento(cliente) {
 }
 
 function renderizarNo() {
+  clearTimeout(temporizadorAvancoDialogo);
   const no = estado.clienteAtual.dialogo[estado.noAtual];
   if (!no) return finalizarAtendimento();
-  document.getElementById('texto-cliente').textContent = no.texto;
+  const balaoVendedor = document.getElementById('balao-vendedor');
+  balaoVendedor.hidden = true;
   document.getElementById('vendedor-dialogo').src = imagemVendedor('parado');
   document.getElementById('nome-falante').textContent = estado.clienteAtual.nome.toUpperCase();
   atualizarBarraSatisfacao();
   document.getElementById('pontos-dialogo').textContent = estado.pontuacaoAtendimento;
   const container = document.getElementById('opcoes-resposta');
   container.innerHTML = '';
+  container.hidden = true;
+  digitarTexto(document.getElementById('texto-cliente'), no.texto, () => renderizarOpcoes(no));
+}
+
+function renderizarOpcoes(no) {
+  const container = document.getElementById('opcoes-resposta');
+  container.hidden = false;
   embaralharOpcoes(no.opcoes).forEach((opcao, indice) => {
     const botao = document.createElement('button');
     const letra = String.fromCharCode(65 + indice);
@@ -320,33 +392,46 @@ function renderizarNo() {
 }
 
 function escolherOpcao(opcao, botao) {
+  cancelarDigitacao();
   document.querySelectorAll('#opcoes-resposta button').forEach(item => item.disabled = true);
   estado.satisfacao = Math.max(0, Math.min(100, estado.satisfacao + opcao.efeitoSatisfacao));
   let pontos = 0;
   if (opcao.categoria && opcao.qualidade) {
     pontos = Number.isFinite(opcao.pontos) ? opcao.pontos : tabelaPontuacao[opcao.categoria][opcao.qualidade];
-    estado.pontuacaoAtendimento += pontos;
+    estado.pontuacaoAtendimento = Math.max(0, estado.pontuacaoAtendimento + pontos);
     estado.decisoesRespondidas += 1;
     if (opcao.correta) estado.acertos += 1;
-    else estado.erros += 1;
+    else if (pontos < 0) estado.erros += 1;
     if (opcao.categoria === 'objecao') {
       estado.objecoesRespondidas += 1;
       if (opcao.correta) estado.objecoesCorretas += 1;
     }
-    mostrarPontosFlutuantes(pontos, botao);
   }
   const vendedor = document.getElementById('vendedor-dialogo');
-  if (!opcao.correta) vendedor.src = imagemVendedor('frustrado');
+  if (pontos < 0) vendedor.src = imagemVendedor('frustrado');
   else if (opcao.categoria === 'pergunta' || opcao.categoria === 'necessidade') vendedor.src = imagemVendedor('pensando');
   else if (pontos >= 10) vendedor.src = imagemVendedor('feliz');
   else vendedor.src = imagemVendedor('falando');
-  if (opcao.resposta) document.getElementById('texto-cliente').textContent = opcao.resposta;
   document.getElementById('feedback-decisao').textContent = opcao.feedback || '';
   atualizarBarraSatisfacao();
   document.getElementById('pontos-dialogo').textContent = estado.pontuacaoAtendimento;
   estado.noAtual = typeof opcao.proximoNo === 'function' ? opcao.proximoNo(estado) : opcao.proximoNo;
   salvarProgresso();
-  setTimeout(renderizarNo, estado.noAtual === null ? 1800 : 1150);
+
+  const container = document.getElementById('opcoes-resposta');
+  const balaoVendedor = document.getElementById('balao-vendedor');
+  container.hidden = true;
+  balaoVendedor.hidden = false;
+  document.getElementById('nome-vendedor-fala').textContent = estado.nomeVendedor.toUpperCase();
+  mostrarPontosFlutuantes(pontos, balaoVendedor);
+  digitarTexto(document.getElementById('texto-vendedor-fala'), opcao.texto, () => {
+    temporizadorAvancoDialogo = setTimeout(() => {
+      if (!opcao.resposta) return renderizarNo();
+      digitarTexto(document.getElementById('texto-cliente'), opcao.resposta, () => {
+        temporizadorAvancoDialogo = setTimeout(renderizarNo, 850);
+      });
+    }, 600);
+  });
 }
 
 function mostrarPontosFlutuantes(valor, referencia) {
@@ -402,10 +487,17 @@ function continuarAposResultado() {
 
 function calcularClassificacao(pontuacao) {
   const feminino = estado.sexoVendedor === 'feminino';
-  if (pontuacao >= 300) return feminino ? 'Mestra do EPAV' : 'Mestre do EPAV';
-  if (pontuacao >= 200) return feminino ? 'Vendedora Destaque' : 'Vendedor Destaque';
-  if (pontuacao >= 100) return feminino ? 'Boa Vendedora' : 'Bom Vendedor';
+  if (pontuacao >= 341) return feminino ? 'Mestra do EPAV' : 'Mestre do EPAV';
+  if (pontuacao >= 241) return feminino ? 'Vendedora Destaque' : 'Vendedor Destaque';
+  if (pontuacao >= 121) return feminino ? 'Boa Vendedora' : 'Bom Vendedor';
   return feminino ? 'Vendedora Iniciante' : 'Vendedor Iniciante';
+}
+
+function mensagemClassificacao(pontuacao) {
+  if (pontuacao >= 341) return 'Você dominou o atendimento. Soube ouvir, argumentar, lidar com objeções e criar valor para o cliente.';
+  if (pontuacao >= 241) return 'Você soube ouvir, entender as necessidades e lidar bem com diferentes situações.';
+  if (pontuacao >= 121) return 'Você conseguiu entender boa parte das necessidades dos clientes e tomar boas decisões.';
+  return 'Você começou a entender como funciona um bom atendimento. Agora é hora de praticar mais.';
 }
 
 function finalizarJogo() {
@@ -415,15 +507,13 @@ function finalizarJogo() {
   const desempenhoObjecoes = estado.objecoesRespondidas
     ? Math.round((estado.objecoesCorretas / estado.objecoesRespondidas) * 100) : 0;
   document.getElementById('classificacao-final').textContent = classificacao;
-  document.getElementById('mensagem-final').textContent = estado.pontuacaoTotal >= 300
-    ? `${estado.nomeVendedor} conseguiu atender todos os clientes com excelência.`
-    : `${estado.nomeVendedor} atendeu todos os clientes. Reveja suas escolhas e tente superar seu resultado.`;
+  document.getElementById('mensagem-final').textContent = mensagemClassificacao(estado.pontuacaoTotal);
   document.getElementById('clientes-final').textContent = `${clientes.length}/${clientes.length}`;
   document.getElementById('decisoes-final').textContent = `${estado.acertos}/${totalDecisoes}`;
   document.getElementById('satisfacao-final').textContent = `${satisfacaoMedia}%`;
   document.getElementById('objecoes-final').textContent = `${desempenhoObjecoes}%`;
   document.getElementById('pontuacao-final').textContent = `${estado.pontuacaoTotal}/400 pontos · ${estado.erros} decisões a revisar`;
-  document.getElementById('vendedor-final').src = estado.pontuacaoTotal >= 300
+  document.getElementById('vendedor-final').src = estado.pontuacaoTotal >= 241
     ? imagemVendedor('comemorando') : imagemVendedor('feliz');
   atualizarIdentidadeVendedor();
   salvarTentativa(classificacao);
@@ -439,10 +529,12 @@ function iniciarCutscene(tipo) {
   const sucesso = tipo === 'sucesso';
   const cenario = document.getElementById('cutscene-cenario');
   cenario.className = sucesso ? 'sucesso' : 'fracasso';
-  document.getElementById('cutscene-selo').textContent = sucesso ? 'PONTUAÇÃO MÁXIMA · 400/400' : 'PONTUAÇÃO MÍNIMA · 0/400';
-  document.getElementById('cutscene-titulo').textContent = sucesso ? 'Atendimento de verdade!' : 'Fim da linha!';
+  document.getElementById('cutscene-selo').textContent = sucesso ? 'FINAL PERFEITO DESBLOQUEADO' : 'PONTUAÇÃO MÍNIMA · 0/400';
+  document.getElementById('cutscene-titulo').textContent = sucesso
+    ? `${estado.sexoVendedor === 'feminino' ? 'Mestra' : 'Mestre'} do EPAV · 400/400`
+    : 'Fim da linha!';
   document.getElementById('cutscene-narracao').textContent = sucesso
-    ? `Os clientes adoraram o atendimento de ${estado.nomeVendedor}.`
+    ? 'Você não vendeu apenas produtos. Você entendeu pessoas.'
     : `Os clientes perderam a confiança e decidiram expulsar ${estado.nomeVendedor}.`;
   document.getElementById('cutscene-vendedor').src = sucesso
     ? imagemVendedor('comemorando')
@@ -461,12 +553,12 @@ function iniciarCutscene(tipo) {
 
   const falas = sucesso
     ? [
-        'Lucas: “Você entendeu exatamente o que eu precisava.”',
-        'Marina: “Você fez a escolha ficar muito mais fácil.”',
-        'Rafael: “Gostei de como você comparou as opções.”',
-        'Camila: “Você realmente prestou atenção no que eu falei.”',
-        'André: “Agora sim. Isso foi atendimento de verdade!”',
-        'Narrador: MESTRE DO EPAV!'
+        'Lucas: “Esse atendimento foi muito bom.”',
+        'Marina: “Você realmente entendeu o que eu precisava.”',
+        'Rafael: “Agora eu sei onde vou procurar da próxima vez.”',
+        'Camila: “Rápido, objetivo e ainda conseguiu me ajudar.”',
+        'André: “Pode colocar esse vendedor na equipe!”',
+        'Narrador: MESTRE DO EPAV · 400/400 — Você não vendeu apenas produtos. Você entendeu pessoas.'
       ]
     : [
         'Lucas: “Você nem tentou entender o que eu precisava.”',
@@ -512,7 +604,7 @@ function salvarTentativa(classificacao) {
   const historico = lerHistorico();
   historico.push({
     data: new Date().toISOString(), pontuacao: estado.pontuacaoTotal, classificacao,
-    clientes: clientes.length, erros: estado.erros, acertos: estado.acertos, maximo: 400, versao: 2,
+    clientes: clientes.length, erros: estado.erros, acertos: estado.acertos, maximo: 400, versao: 3,
     nomeVendedor: estado.nomeVendedor, sexoVendedor: estado.sexoVendedor
   });
   localStorage.setItem('historicoEpav', JSON.stringify(historico));
@@ -526,7 +618,7 @@ function lerHistorico() {
 function salvarProgresso() {
   if (estado.etapa === 'menu' || estado.indiceClienteAtual >= clientes.length) return;
   const progresso = {
-    versao: 2,
+    versao: 3,
     salvoEm: new Date().toISOString(),
     etapa: estado.etapa,
     nomeVendedor: estado.nomeVendedor,
@@ -555,7 +647,7 @@ function lerProgresso() {
   try {
     const progresso = JSON.parse(localStorage.getItem(CHAVE_PROGRESSO) || 'null');
     const etapasValidas = ['escritorio', 'dialogo', 'resultado'];
-    if (!progresso || progresso.versao !== 2 || !etapasValidas.includes(progresso.etapa)) return null;
+    if (!progresso || progresso.versao !== 3 || !etapasValidas.includes(progresso.etapa)) return null;
     if (!Number.isInteger(progresso.indiceClienteAtual) || progresso.indiceClienteAtual < 0 || progresso.indiceClienteAtual >= clientes.length) return null;
     if (progresso.etapa !== 'escritorio' && !clientes.some(cliente => cliente.id === progresso.clienteId)) return null;
     return progresso;
@@ -704,7 +796,10 @@ document.addEventListener('keydown', evento => {
   if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
 
   const botoes = [...document.querySelectorAll('#opcoes-resposta button:not(:disabled)')];
-  if (!botoes.length) return;
+  if (!botoes.length) {
+    if ((evento.key === 'Enter' || evento.key === ' ') && concluirDigitacao()) evento.preventDefault();
+    return;
+  }
   const tecla = evento.key.toUpperCase();
   let indice = /^[A-Z]$/.test(tecla) ? tecla.charCodeAt(0) - 65 : -1;
   if (/^[1-9]$/.test(evento.key)) indice = Number(evento.key) - 1;
@@ -721,5 +816,8 @@ document.addEventListener('keydown', evento => {
   const proximo = atual < 0 ? 0 : (atual + (avanca ? 1 : -1) + botoes.length) % botoes.length;
   botoes[proximo].focus();
 });
+
+document.getElementById('balao-fala').addEventListener('click', concluirDigitacao);
+document.getElementById('balao-vendedor').addEventListener('click', concluirDigitacao);
 
 atualizarResumoMenu();

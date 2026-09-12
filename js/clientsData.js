@@ -1,575 +1,451 @@
-const feedbackPorCategoria = {
-  abordagem: ['Você respeitou o momento e abriu espaço para conversar.', 'A abordagem criou pressão antes de entender o cliente.'],
-  pergunta: ['A pergunta aprofundou a necessidade sem presumir a resposta.', 'A pergunta conduziu cedo demais ou não investigou a necessidade real.'],
-  necessidade: ['Você conectou as pistas e confirmou a necessidade.', 'A resposta presumiu a solução antes de compreender todo o contexto.'],
-  oferta: ['A oferta foi ligada ao que o cliente realmente valoriza.', 'A oferta priorizou o produto, não a necessidade revelada.'],
-  objecao: ['Você acolheu a objeção e respondeu com um critério concreto.', 'A objeção foi minimizada ou respondida sem evidência.'],
-  fechamento: ['O fechamento confirmou o próximo passo sem pressionar.', 'O fechamento criou pressão e enfraqueceu a confiança construída.']
+const feedbackPorResultado = {
+  excelente: 'Excelente escolha: você ouviu o cliente e respondeu exatamente ao que ele precisava.',
+  boa: 'Boa resposta. Ela ajuda a conversa, mas ainda poderia considerar melhor a necessidade apresentada.',
+  neutra: 'Resposta neutra. Ela não prejudica o atendimento, mas também não cria valor para o cliente.',
+  ruim: 'Essa resposta enfraquece o atendimento porque ignora ou pressiona a necessidade do cliente.'
 };
 
-function criarNo(texto, escolhas, melhores, categoria, proximoNo, respostas = []) {
+function criarNo(texto, escolhas, pontos, categoria, proximoNo, resposta = '') {
   return {
     texto,
     opcoes: escolhas.map((escolha, indice) => {
-      const correta = melhores.includes(indice);
-      const resposta = Array.isArray(respostas) ? respostas[indice] : respostas;
+      const valor = pontos[indice];
+      const nivel = valor >= 10 ? 'excelente' : valor > 0 ? 'boa' : valor === 0 ? 'neutra' : 'ruim';
       return {
         texto: escolha,
         categoria,
-        qualidade: correta ? 'excelente' : 'ruim',
-        efeitoSatisfacao: correta ? 6 : -5,
-        pontos: correta ? 10 : 0,
-        correta,
-        feedback: feedbackPorCategoria[categoria][correta ? 0 : 1],
-        resposta: resposta || '',
+        qualidade: nivel,
+        efeitoSatisfacao: valor >= 10 ? 6 : valor > 0 ? 3 : valor === 0 ? 0 : valor <= -10 ? -7 : -4,
+        pontos: valor,
+        correta: valor === 10,
+        feedback: feedbackPorResultado[nivel],
+        resposta,
         proximoNo
       };
     })
   };
 }
 
+function criarCliente(configuracao, decisoes) {
+  const dialogo = {};
+  decisoes.forEach((decisao, indice) => {
+    const atual = `d${indice + 1}`;
+    const proximo = indice === decisoes.length - 1 ? null : `d${indice + 2}`;
+    dialogo[atual] = criarNo(decisao[0], decisao[1], decisao[2], decisao[3], proximo, decisao[4] || '');
+  });
+  return { ...configuracao, decisoes: decisoes.length, noInicial: 'd1', dialogo };
+}
+
 const clientes = [
-  {
-    id: 'cliente1',
-    nome: 'Lucas',
-    area: 'Desafio 1 · Abordagem',
-    dificuldade: '⭐',
-    perfil: 'Mora sozinho e procura refeições práticas para a semana.',
-    status: 'Terminando uma tarefa',
-    x: 14,
-    y: 43,
-    satisfacaoInicial: 55,
+  criarCliente({
+    id: 'cliente1', nome: 'Lucas', area: 'Desafio 1 · Abordagem', dificuldade: '⭐',
+    perfil: 'Vai preparar um churrasco para seis pessoas e procura praticidade sem desperdício.',
+    status: 'Terminando uma tarefa', x: 14, y: 43, satisfacaoInicial: 55,
     tempoOcupadoInicial: 3500,
     motivoOcupado: 'Está terminando uma coisa. Observe o momento antes de abordar.',
-    objetivo: 'Aprender a abordar, fazer perguntas e entender a necessidade.',
-    decisoes: 6,
-    licao: 'Aborde com respeito, investigue a rotina e só então relacione produto, praticidade e preço.',
-    produtos: [
-      { nome: 'Porção Prática', preco: 24.90, caracteristica: 'preparo rápido e quantidade individual' },
-      { nome: 'Carne Versátil', preco: 22.90, caracteristica: 'serve diferentes refeições' }
+    objetivo: 'Aprender a abordar, entender a necessidade e fechar sem pressionar.',
+    licao: 'Respeite o momento, entenda quantidade, praticidade e orçamento antes de recomendar.',
+    produtos: []
+  }, [
+    [
+      'Oi! Você que está atendendo por aqui hoje?\n\n[VENDEDOR]: Sim! Posso te ajudar?\n\nLUCAS: Pode. Eu estava pensando em comprar algumas coisas para fazer um churrasco no fim de semana.\n\n[VENDEDOR]: Legal! É para quantas pessoas?\n\nLUCAS: Umas seis pessoas. Mas eu só estou dando uma olhada. Não quero comprar nada agora.',
+      [
+        'Tudo bem. Se precisar de alguma coisa, estou por aqui.',
+        'Mas posso te mostrar algumas promoções?',
+        'Você precisa comprar para o churrasco, então posso te ajudar.',
+        'Se você não comprar agora, pode acabar ficando sem produto.'
+      ], [10, 5, -5, -10], 'abordagem'
     ],
-    noInicial: 'd1',
-    dialogo: {
-      d1: criarNo(
-        'Opa... você é do EPAV, né? Pode falar. Só estou terminando uma coisa aqui.',
-        [
-          'Vou ser rápido. Quero te mostrar alguns produtos que estão vendendo bastante.',
-          'Você está ocupado? Se estiver, posso voltar depois.',
-          'Preciso que você me diga o que costuma comprar.',
-          'Você tem que comprar alguma coisa hoje?'
-        ],
-        [1], 'abordagem', 'd2',
-        [
-          'Tudo bem, mas eu ainda não sei se tenho interesse.',
-          'Estou quase terminando. Pode falar.',
-          'Calma... nem começamos a conversar.',
-          'Não necessariamente. Só estou ouvindo.'
-        ]
-      ),
-      d2: criarNo(
-        'Moro sozinho. Quando estou tranquilo, cozinho; durante a semana é complicado e prefiro alguma coisa prática.',
-        [
-          'Então você precisa de coisas rápidas para os dias mais corridos?',
-          'Você deveria comprar refeições prontas.',
-          'Qual é o produto mais barato que você compra?',
-          'Você não gosta de cozinhar?'
-        ],
-        [0], 'necessidade', 'd3'
-      ),
-      d3: criarNo(
-        'Exatamente. Quando chego cansado, não quero passar muito tempo na cozinha. Praticidade importa, mas também não quero gastar muito.',
-        [
-          'Se tivesse que escolher, você prefere economizar ou ganhar tempo?',
-          'Você costuma gastar quanto por refeição?',
-          'Você compra bastante carne?',
-          'Quer que eu mostre logo alguns produtos?'
-        ],
-        [0, 1], 'pergunta', 'd4'
-      ),
-      d4: criarNo(
-        'Normalmente tento não passar muito de R$ 25 por refeição. Quero algo fácil de preparar e que possa usar em refeições diferentes.',
-        [
-          'É um produto muito bom e todo mundo compra.',
-          'Como você quer praticidade, essa opção é fácil de preparar e pode ser usada em mais de uma refeição.',
-          'Está em promoção, então é melhor comprar agora.',
-          'É mais caro, mas vale a pena.'
-        ],
-        [1], 'oferta', 'd5'
-      ),
-      d5: criarNo(
-        'Aí sim. Gosto de produto que não serve só para uma coisa. Mas, dependendo do preço, talvez eu não leve.',
-        [
-          'Mas é barato.',
-          'Se você não quiser gastar, pode escolher qualquer outra coisa.',
-          'Entendo. Como seu limite é R$ 25 por refeição, podemos pensar em uma quantidade que faça sentido.',
-          'Você está preocupado demais com preço.'
-        ],
-        [2], 'objecao', 'd6'
-      ),
-      d6: criarNo(
-        'Assim fica mais fácil. Não quero comprar sem saber quanto vou gastar. Essa opção faz sentido para minha rotina e acho que vou levar.',
-        [
-          'Então compra logo.',
-          'Quer que eu te ajude a escolher a quantidade ideal para não comprar demais?',
-          'Você tem certeza?',
-          'Eu sabia que você ia gostar.'
-        ],
-        [1], 'fechamento', null,
-        [
-          'Prefiro decidir sem pressão.',
-          'Pode ser. Quero começar com uma quantidade pequena. Valeu pela ajuda; você entendeu o que eu precisava.',
-          'Eu estava, mas agora fiquei em dúvida.',
-          'Gostei, mas não precisa decidir por mim.'
-        ]
-      )
-    }
-  },
-  {
-    id: 'cliente2',
-    nome: 'Marina',
-    area: 'Desafio 2 · Descoberta',
-    dificuldade: '⭐⭐',
-    perfil: 'Tem uma rotina corrida e quer reduzir gastos com delivery.',
-    status: 'Organizando a agenda',
-    x: 33,
-    y: 36,
-    satisfacaoInicial: 52,
-    objetivo: 'Descobrir necessidades específicas e relacioná-las ao produto.',
-    decisoes: 7,
-    licao: 'Perguntas abertas transformam uma vontade vaga em critérios claros de escolha.',
-    produtos: [
-      { nome: 'Frango Porcionado', preco: 34.90, caracteristica: 'versátil e fácil de preparar' },
-      { nome: 'Kit Semanal', preco: 59.90, caracteristica: 'porções para várias refeições' }
+    [
+      'Tranquilo. Na verdade, eu queria mesmo saber o que seria melhor para seis pessoas. Eu queria algo que fosse fácil de preparar. Não tenho muito tempo para ficar fazendo tudo.',
+      [
+        'Então vou te mostrar opções práticas que combinam com o churrasco.',
+        'Você pode comprar qualquer carne e preparar do seu jeito.',
+        'Nesse caso, talvez seja melhor comprar bastante coisa.',
+        'Se você não tem tempo, churrasco talvez não seja uma boa ideia.'
+      ], [10, 3, -3, -10], 'necessidade'
     ],
-    noInicial: 'd1',
-    dialogo: {
-      d1: criarNo(
-        'Oi! Você é o aluno que está atendendo o pessoal hoje? Não estou procurando nada específico.',
-        [
-          'Então vou te mostrar alguns produtos até você encontrar um.',
-          'Tudo bem. Posso entender primeiro como é sua rotina e ver se aparece algo que faça sentido?',
-          'Mas você precisa comprar alguma coisa?',
-          'Você pode pelo menos olhar as promoções?'
-        ],
-        [1], 'abordagem', 'd2'
-      ),
-      d2: criarNo(
-        'Minha rotina é bem corrida. Trabalho o dia inteiro, chego tarde e às vezes peço comida, mas estou tentando diminuir isso.',
-        [
-          'Por quê?',
-          'Você deveria cozinhar mais.',
-          'Então você precisa de comida congelada.',
-          'Quanto você gasta com delivery?'
-        ],
-        [0], 'pergunta', 'd3'
-      ),
-      d3: criarNo(
-        'Porque acaba ficando caro. Às vezes peço só porque estou cansada; não é que eu não goste de cozinhar.',
-        [
-          'Você precisa de alguma coisa que possa deixar preparada antes?',
-          'Então compre qualquer coisa congelada.',
-          'Você não tem tempo nenhum?',
-          'Quer ver carnes?'
-        ],
-        [0], 'necessidade', 'd4'
-      ),
-      d4: criarNo(
-        'Se eu pudesse preparar algo no fim de semana e usar durante a semana, seria ótimo. Gosto de frango porque combina com arroz, salada e massa.',
-        [
-          'Então vou te mostrar o frango mais barato.',
-          'Você prefere peito, coxa ou tanto faz?',
-          'Frango é o que todo mundo compra.',
-          'Você gosta de frango mesmo?'
-        ],
-        [1], 'pergunta', 'd5'
-      ),
-      d5: criarNo(
-        'Normalmente peito. É mais versátil. Preço importa, mas praticidade é prioridade.',
-        [
-          'Esse produto é o melhor.',
-          'Esse produto pode ser usado em preparos diferentes e ajuda a deixar as refeições da semana mais práticas.',
-          'Esse produto está na promoção.',
-          'Todo mundo gosta dele.'
-        ],
-        [1], 'oferta', 'd6'
-      ),
-      d6: criarNo(
-        'Gostei da ideia, mas tenho medo de comprar e acabar não usando.',
-        [
-          'Não vai acontecer.',
-          'Então não compra.',
-          'Podemos começar com uma quantidade menor e você vê se encaixa na sua rotina.',
-          'Você precisa experimentar para saber.'
-        ],
-        [2], 'objecao', 'd7'
-      ),
-      d7: criarNo(
-        'Faz sentido. Assim não corro tanto risco e, se funcionar, já sei o que comprar da próxima vez.',
-        [
-          'Pode comprar?',
-          'Quer que eu monte uma sugestão pensando nas suas refeições da semana?',
-          'Você vai levar ou não?',
-          'Acho que já conversamos demais.'
-        ],
-        [1], 'fechamento', null,
-        [
-          'Ainda preciso entender melhor a sugestão.',
-          'Quero sim. Obrigada; eu nem procurava nada e agora sei o que pode facilitar minha semana.',
-          'Não precisa me pressionar.',
-          'Então é melhor encerrarmos por aqui.'
-        ]
-      )
-    }
-  },
-  {
-    id: 'cliente3',
-    nome: 'Rafael',
-    area: 'Desafio 3 · Valor',
-    dificuldade: '⭐⭐⭐',
-    perfil: 'Pesquisa preço e compara quantidade e rendimento.',
-    status: 'Conferindo preços',
-    x: 52,
-    y: 41,
-    satisfacaoInicial: 49,
-    objetivo: 'Trabalhar preço, comparação e construção de valor.',
-    decisoes: 8,
-    licao: 'Comparar valor exige considerar quantidade, rendimento, uso real e desperdício.',
-    produtos: [
-      { nome: 'Carne Moída Família', preco: 42.90, caracteristica: 'quantidade adequada para três pessoas' },
-      { nome: 'Porção Compacta', preco: 29.90, caracteristica: 'menor volume e menor rendimento' }
+    [
+      'E também não quero comprar demais e acabar sobrando.',
+      [
+        'Podemos pensar na quantidade de pessoas e escolher uma quantidade adequada.',
+        'É melhor comprar um pouco a mais para garantir.',
+        'Compra bastante e depois você vê o que faz com o restante.',
+        'Então compra pouco, mesmo que não seja suficiente.'
+      ], [10, 5, -5, -10], 'oferta'
     ],
-    noInicial: 'd1',
-    dialogo: {
-      d1: criarNo(
-        'Fala! Você está vendendo alguma coisa? Já vou avisando: eu pesquiso preço antes de comprar.',
-        [
-          'Mas nossos produtos têm qualidade.',
-          'Você está certo. Posso entender o que costuma comparar antes de falar de produto?',
-          'Então você provavelmente não vai comprar.',
-          'Tenho algumas promoções.'
-        ],
-        [1], 'abordagem', 'd2'
-      ),
-      d2: criarNo(
-        'Comparo principalmente preço e quantidade. Algumas vezes compro para mim e para minha família.',
-        [
-          'Quantas pessoas?',
-          'Então você precisa comprar bastante.',
-          'Sua família gosta de carne?',
-          'Você compra toda semana?'
-        ],
-        [0], 'pergunta', 'd3'
-      ),
-      d3: criarNo(
-        'Normalmente três pessoas. Cozinhamos à noite e compramos carne moída com frequência porque é fácil de usar.',
-        [
-          'Então compre a maior embalagem.',
-          'Você usa a carne moída em quais pratos?',
-          'Quanto você paga normalmente?',
-          'Tem uma promoção de carne.'
-        ],
-        [1], 'pergunta', 'd4'
-      ),
-      d4: criarNo(
-        'Usamos em hambúrguer, molho e recheio. Quando uma embalagem é maior, às vezes acaba sobrando.',
-        [
-          'Então você deveria comprar a menor.',
-          'O preço da embalagem não basta: também precisamos pensar em quanto vocês realmente vão usar.',
-          'É por isso que comprar barato pode ser ruim.',
-          'Então preço não importa.'
-        ],
-        [1], 'necessidade', 'd5'
-      ),
-      d5: criarNo(
-        'Exatamente. Procuro um tamanho adequado para três pessoas e que possa ser usado em vários pratos.',
-        [
-          'Essa é a mais barata.',
-          'Essa opção tem uma quantidade que pode funcionar para três pessoas e é versátil.',
-          'Essa é a mais vendida.',
-          'Essa é a melhor que temos.'
-        ],
-        [1], 'oferta', 'd6'
-      ),
-      d6: criarNo(
-        'Ela custa R$ 42,90? Encontrei uma parecida mais barata.',
-        [
-          'Mas essa aqui é melhor.',
-          'Então compre a outra.',
-          'Além do preço, compare quantidade e rendimento para ver qual realmente compensa para sua família.',
-          'Essa diferença não é grande.'
-        ],
-        [2], 'objecao', 'd7'
-      ),
-      d7: criarNo(
-        'Eu realmente comparo mais pelo quanto rende. Mesmo assim, não sei se vale a pena.',
-        [
-          'Vale sim.',
-          'O que faria essa compra valer a pena para você?',
-          'Você está pensando demais.',
-          'Posso te dar um desconto.'
-        ],
-        [1], 'objecao', 'd8'
-      ),
-      d8: criarNo(
-        'Valeria se eu conseguisse usar tudo sem sobrar e tivesse um preço bom por quantidade. Essa opção parece atender melhor.',
-        [
-          'Vai levar?',
-          'Se você quiser, podemos comparar mais uma opção antes de decidir.',
-          'Eu acho que você deveria levar.',
-          'Essa é sua última chance.'
-        ],
-        [1], 'fechamento', null,
-        [
-          'Não precisa me apressar.',
-          'Não precisa. Agora entendi a diferença e vou levar. Você me ajudou a comparar em vez de só tentar convencer.',
-          'Quero tomar minha própria decisão.',
-          'Nesse caso, prefiro não levar.'
-        ]
-      )
-    }
-  },
-  {
-    id: 'cliente4',
-    nome: 'Camila',
-    area: 'Desafio 4 · Objeções',
-    dificuldade: '⭐⭐⭐⭐',
-    perfil: 'Tem pouco tempo, pouco espaço e várias preocupações de compra.',
-    status: 'Entre duas reuniões',
-    x: 70,
-    y: 34,
-    satisfacaoInicial: 46,
-    objetivo: 'Lidar com múltiplas objeções e manter o foco na necessidade.',
-    decisoes: 9,
-    licao: 'Múltiplas objeções ficam mais simples quando você organiza os critérios do cliente.',
-    produtos: [
-      { nome: 'Kit Compacto', preco: 74.90, caracteristica: 'porções variadas que ocupam pouco espaço' },
-      { nome: 'Kit Econômico', preco: 59.90, caracteristica: 'menor preço e embalagem maior' }
+    [
+      'Gostei dessa opção, mas achei o preço um pouco alto.',
+      [
+        'Entendo. Posso verificar se existe alguma promoção ou outra opção com melhor custo-benefício.',
+        'É um produto melhor, então acaba sendo mais caro.',
+        'Mas o preço está normal.',
+        'Se está caro, então não tem muito o que fazer.'
+      ], [10, 5, 0, -10], 'objecao'
     ],
-    noInicial: 'd1',
-    dialogo: {
-      d1: criarNo(
-        'Você pode falar, mas já adianto que estou com pouco tempo.',
-        [
-          'Qual produto você quer?',
-          'Antes de falar de produto, o que costuma ser mais difícil para você ao comprar comida?',
-          'Então vou mostrar só uma promoção.',
-          'Você pode voltar quando estiver livre.'
-        ],
-        [1], 'abordagem', 'd2'
-      ),
-      d2: criarNo(
-        'Planejamento. Compro coisas sem pensar muito e depois percebo que faltou alguma coisa.',
-        [
-          'Você precisa fazer uma lista.',
-          'Isso acontece porque você esquece ou porque não sabe o que vai precisar?',
-          'Então compre mais produtos.',
-          'Eu também sou assim.'
-        ],
-        [1], 'pergunta', 'd3'
-      ),
-      d3: criarNo(
-        'Mais porque não sei o que vou usar durante a semana. Também não gosto de ficar muito tempo preparando comida.',
-        [
-          'Então você quer praticidade.',
-          'Você cozinha todos os dias?',
-          'Qual produto você mais compra?',
-          'Então você precisa de congelados.'
-        ],
-        [1], 'pergunta', 'd4'
-      ),
-      d4: criarNo(
-        'Cozinho talvez três vezes por semana. Nos outros dias como fora ou peço algo. Produtos armazenáveis ajudariam, mas não quero encher meu freezer.',
-        [
-          'Então compre pouco.',
-          'Quanto espaço você costuma ter disponível?',
-          'Esse produto ocupa pouco espaço.',
-          'Mas vale a pena.'
-        ],
-        [1], 'pergunta', 'd5'
-      ),
-      d5: criarNo(
-        'Meu freezer não é muito grande e tenho outras coisas. Quantidade e espaço importam. E provavelmente vai ficar caro.',
-        [
-          'Não vai.',
-          'Qual valor você considera confortável para essa compra?',
-          'É um pouco caro mesmo.',
-          'Tem produtos mais baratos.'
-        ],
-        [1], 'objecao', 'd6'
-      ),
-      d6: criarNo(
-        'Não queria gastar mais de R$ 80, mas também não quero comprar só porque está dentro do orçamento.',
-        [
-          'Claro, mas está barato.',
-          'Concordo. O produto precisa fazer sentido para sua rotina também.',
-          'Então é melhor não comprar.',
-          'Você é difícil de convencer.'
-        ],
-        [1], 'objecao', 'd7'
-      ),
-      d7: criarNo(
-        'Exatamente. Precisamos considerar espaço, praticidade e valor. Qual opção você mostraria?',
-        [
-          'Mostrar o produto mais barato.',
-          'Mostrar o produto que melhor atende à rotina explicada.',
-          'Mostrar o produto mais vendido.',
-          'Mostrar o produto com maior embalagem.'
-        ],
-        [1], 'oferta', 'd8'
-      ),
-      d8: criarNo(
-        'Esse parece interessante. Pode ser usado em preparos diferentes sem uma quantidade enorme, mas não sei se vou gostar.',
-        [
-          'Você só vai saber se experimentar.',
-          'Podemos começar com uma quantidade menor e avaliar se combina com sua rotina.',
-          'Tenho certeza de que você vai gostar.',
-          'É um dos mais vendidos.'
-        ],
-        [1], 'objecao', 'd9'
-      ),
-      d9: criarNo(
-        'Assim fico mais confortável. A opção menor resolve parte do problema, ocupa pouco espaço e não passa do valor que eu queria.',
-        [
-          'Então pode finalizar.',
-          'Quer levar essa opção menor para testar primeiro?',
-          'Você vai comprar ou não?',
-          'Eu sabia que funcionaria.'
-        ],
-        [1], 'fechamento', null,
-        [
-          'Ainda quero confirmar a decisão.',
-          'Vou testar. Gostei da conversa; você não ficou tentando empurrar produto.',
-          'Com essa pressão, prefiro não comprar.',
-          'Funcionou porque você ouviu, não porque já sabia.'
-        ]
-      )
-    }
-  },
-  {
-    id: 'cliente5',
-    nome: 'André',
-    area: 'Desafio 5 · Atendimento completo',
-    dificuldade: '⭐⭐⭐⭐⭐',
-    perfil: 'Questiona preço, quantidade, comparação e a própria necessidade.',
-    status: 'Disponível por poucos minutos',
-    x: 87,
-    y: 39,
-    satisfacaoInicial: 42,
-    objetivo: 'Juntar tudo o que foi aprendido nos atendimentos anteriores.',
-    decisoes: 10,
-    licao: 'Atendimento de verdade começa pela escuta e sustenta cada recomendação nos critérios do cliente.',
-    produtos: [
-      { nome: 'Porção Bovina Individual', preco: 39.90, caracteristica: 'rápida, versátil e sem desperdício' },
-      { nome: 'Kit Bovino Família', preco: 69.90, caracteristica: 'maior volume e menor preço por quilo' }
+    [
+      'Vou pensar e talvez compre mais perto do fim de semana.',
+      [
+        'Claro. Se quiser, podemos deixar a opção definida e você decide mais perto do fim de semana.',
+        'Tudo bem, mas tenta não deixar para a última hora.',
+        'Você deveria comprar agora.',
+        'Se deixar para depois, provavelmente vai esquecer.'
+      ], [10, 5, -5, -10], 'objecao'
     ],
-    noInicial: 'd1',
-    dialogo: {
-      d1: criarNo(
-        'Você é do EPAV? Pode falar, mas vou ser sincero: não estou muito interessado em comprar nada hoje.',
-        [
-          'Tudo bem, então vou procurar outra pessoa.',
-          'Posso entender o que você procura e, se não fizer sentido, paramos por aqui.',
-          'Mas você precisa conhecer os produtos.',
-          'Tem certeza? Temos promoções.'
-        ],
-        [1], 'abordagem', 'd2'
-      ),
-      d2: criarNo(
-        'Minha rotina é corrida. Às vezes cozinho e às vezes compro pronto.',
-        [
-          'Então você precisa de comida pronta.',
-          'Quando compra pronto, normalmente é por falta de tempo ou por praticidade?',
-          'Quanto você gasta?',
-          'Você não gosta de cozinhar?'
-        ],
-        [1], 'pergunta', 'd3'
-      ),
-      d3: criarNo(
-        'É mais por falta de tempo. Gosto de cozinhar, só não quero passar duas horas fazendo comida.',
-        [
-          'Então você precisa de algo rápido.',
-          'Quanto tempo você considera razoável para preparar uma refeição?',
-          'Você gosta de carne?',
-          'Quer ver algumas opções?'
-        ],
-        [1], 'pergunta', 'd4'
-      ),
-      d4: criarNo(
-        'Uns 30 minutos, no máximo. Durante a semana preparo só para mim e prefiro carne bovina.',
-        [
-          'Então vou te mostrar carne bovina.',
-          'Você prefere uma carne rápida de preparar ou aceita esperar mais, desde que seja boa?',
-          'Você compra carne toda semana?',
-          'Qual é a carne mais barata?'
-        ],
-        [1], 'necessidade', 'd5'
-      ),
-      d5: criarNo(
-        'Quero algo rápido e não quero desperdiçar comida. A quantidade também é muito importante.',
-        [
-          'Mostrar a opção mais cara.',
-          'Mostrar uma opção que atenda rapidez, quantidade adequada e versatilidade.',
-          'Mostrar a maior embalagem.',
-          'Mostrar a promoção do dia.'
-        ],
-        [1], 'oferta', 'd6'
-      ),
-      d6: criarNo(
-        'A opção custa R$ 39,90? Caramba. Consigo encontrar carne mais barata.',
-        [
-          'Mas essa é melhor.',
-          'Existem opções mais baratas. Vamos comparar quantidade, praticidade e quanto você realmente vai usar.',
-          'A diferença não é tão grande.',
-          'Então compra a mais barata.'
-        ],
-        [1], 'objecao', 'd7'
-      ),
-      d7: criarNo(
-        'Ainda acho caro. Valeria a pena se eu usasse tudo, mas essa embalagem talvez seja grande demais para mim.',
-        [
-          'Você pode congelar.',
-          'Talvez essa não seja a melhor. Posso procurar uma quantidade menor que ainda atenda ao que você precisa.',
-          'Você pode comprar mesmo assim.',
-          'Não é tão grande.'
-        ],
-        [1], 'objecao', 'd8'
-      ),
-      d8: criarNo(
-        'Essa resposta eu gostei. A outra opção funciona melhor para uma pessoa, mas é mais cara por quilo.',
-        [
-          'Sim, mas é melhor.',
-          'Por quilo fica mais cara, mas podemos comparar quanto você vai usar e quanto vai sobrar.',
-          'Não precisa olhar o preço por quilo.',
-          'Essa é a que eu recomendo.'
-        ],
-        [1], 'objecao', 'd9'
-      ),
-      d9: criarNo(
-        'Pensando assim, talvez compense. Ainda estou em dúvida se realmente preciso comprar agora.',
-        [
-          'Você deveria comprar.',
-          'Não faz sentido comprar só por comprar. Mas pode valer a pena se resolver seu problema durante a semana.',
-          'Mas você já gostou.',
-          'Posso te dar um desconto.'
-        ],
-        [1], 'objecao', 'd10'
-      ),
-      d10: criarNo(
-        'Justo. Meu problema é falta de tempo e desperdício, e essa opção menor parece resolver melhor os dois pontos.',
-        [
-          'Então vai levar?',
-          'Quer começar com essa opção menor e ver se ela funciona na sua rotina?',
-          'Posso registrar seu pedido?',
-          'Essa é definitivamente a melhor escolha.'
-        ],
-        [1], 'fechamento', null,
-        [
-          'Não precisa me pressionar agora.',
-          'Vou fazer isso. Eu não queria comprar nada, mas você primeiro entendeu o que eu precisava. Isso foi atendimento de verdade.',
-          'Ainda não confirmei que quero comprar.',
-          'Prefiro decidir por conta própria.'
-        ]
-      )
-    }
-  }
+    [
+      'Tá, acho que vou levar essa opção mesmo.',
+      [
+        'Perfeito. Então vamos fechar essa opção para o seu churrasco.',
+        'Boa escolha.',
+        'Tem certeza?',
+        'Finalmente decidiu.'
+      ], [10, 5, 0, -10], 'fechamento', 'Valeu pela ajuda, [VENDEDOR].'
+    ]
+  ]),
+
+  criarCliente({
+    id: 'cliente2', nome: 'Marina', area: 'Desafio 2 · Descoberta', dificuldade: '⭐⭐',
+    perfil: 'Mora sozinha, tem restrições alimentares e procura um jantar prático.',
+    status: 'Organizando a agenda', x: 33, y: 36, satisfacaoInicial: 52,
+    objetivo: 'Descobrir necessidades, restrições e custo-benefício antes da oferta.',
+    licao: 'Uma boa recomendação considera rotina, quantidade, restrições e preço.',
+    produtos: []
+  }, [
+    [
+      'Oi, [VENDEDOR]. Estou procurando alguma coisa para fazer um jantar hoje.\n\n[VENDEDOR]: Claro. Você já sabe o que gostaria de preparar?\n\nMARINA: Ainda não. Quero algo gostoso, mas também não quero passar muito tempo na cozinha. Você tem alguma sugestão?',
+      [
+        'Antes de sugerir, posso entender um pouco melhor o que você procura?',
+        'Tenho várias. Posso te mostrar as mais vendidas.',
+        'Depende do preço.',
+        'Tem bastante coisa ali. Dá uma olhada.'
+      ], [10, 5, 0, -10], 'pergunta'
+    ],
+    [
+      'Quero algo prático. Vou chegar em casa cansada.',
+      [
+        'Então faz sentido procurar algo rápido de preparar.',
+        'Você pode preparar qualquer produto rapidamente.',
+        'Então compre uma quantidade maior.',
+        'Se está cansada, talvez seja melhor pedir comida.'
+      ], [10, 3, -3, -10], 'necessidade'
+    ],
+    [
+      'E também não quero comprar muito. Moro sozinha.',
+      [
+        'Nesse caso, podemos procurar uma quantidade adequada para uma pessoa e evitar desperdício.',
+        'É melhor levar uma quantidade maior e guardar.',
+        'Pode levar a embalagem maior, porque o preço costuma compensar.',
+        'Então pega qualquer uma.'
+      ], [10, 5, -3, -10], 'necessidade'
+    ],
+    [
+      'Eu tenho algumas restrições alimentares, então preciso tomar cuidado.',
+      [
+        'Claro. Vamos conferir as opções que atendem ao que você pode consumir.',
+        'Acho que esse produto não tem problema.',
+        'Você pode levar e conferir em casa.',
+        'Isso não faz muita diferença.'
+      ], [10, 3, -5, -10], 'necessidade'
+    ],
+    [
+      'Gostei dessa opção, mas será que vale o preço?',
+      [
+        'Vamos comparar com outras opções e ver qual entrega o melhor custo-benefício para o que você precisa.',
+        'É um pouco mais caro, mas é uma boa opção.',
+        'O preço é esse mesmo.',
+        'Se você gostou, vale a pena pagar.'
+      ], [10, 5, 0, -5], 'objecao'
+    ],
+    [
+      'Eu costumo comprar em outro lugar.',
+      [
+        'Entendo. O importante é encontrar uma opção que realmente faça sentido para você. Posso te mostrar o que temos aqui.',
+        'Mas aqui também temos produtos bons.',
+        'Você deveria experimentar a nossa loja.',
+        'O outro lugar provavelmente não tem opções tão boas.'
+      ], [10, 5, 3, -10], 'objecao'
+    ],
+    [
+      'Tá bom, vou experimentar essa opção.',
+      [
+        'Ótimo. Acho que ela combina bem com o que você estava procurando.',
+        'Boa escolha.',
+        'Tem certeza?',
+        'Então leva logo.'
+      ], [10, 5, 0, -10], 'fechamento'
+    ]
+  ]),
+
+  criarCliente({
+    id: 'cliente3', nome: 'Rafael', area: 'Desafio 3 · Valor', dificuldade: '⭐⭐⭐',
+    perfil: 'Compra carnes para a semana, compara preços e já frequenta outra loja.',
+    status: 'Conferindo preços', x: 52, y: 41, satisfacaoInicial: 49,
+    objetivo: 'Construir valor considerando rotina, concorrência, quantidade e tempo.',
+    licao: 'Valor aparece quando a oferta se conecta ao consumo real e respeita a comparação do cliente.',
+    produtos: []
+  }, [
+    [
+      'Você é quem está atendendo hoje?\n\n[VENDEDOR]: Sou eu. Como posso ajudar?\n\nRAFAEL: Estou procurando algumas carnes para a semana, mas normalmente compro em outro lugar. Não sei se vou comprar alguma coisa aqui hoje.',
+      [
+        'Sem problema. Posso entender o que você costuma comprar e, se fizer sentido, mostrar algumas opções.',
+        'Posso te mostrar nossas promoções.',
+        'Você pode encontrar produtos melhores aqui.',
+        'Mas por que você não compra aqui?'
+      ], [10, 5, 3, -10], 'abordagem'
+    ],
+    [
+      'Normalmente compro carne moída e alguns cortes para a semana.',
+      [
+        'E você costuma preparar essas carnes de que forma?',
+        'Então tenho algumas opções para você.',
+        'A carne moída é uma boa escolha.',
+        'Você deveria experimentar outros produtos.'
+      ], [10, 5, 3, -5], 'pergunta'
+    ],
+    [
+      'Carne moída eu uso durante a semana. Nos finais de semana gosto de fazer algo diferente.',
+      [
+        'Então podemos pensar em uma opção prática para a semana e outra para o fim de semana.',
+        'Você pode levar mais de uma opção.',
+        'Então pega duas carnes diferentes.',
+        'É melhor comprar tudo igual.'
+      ], [10, 5, 0, -5], 'necessidade'
+    ],
+    [
+      'Mas o outro lugar onde compro costuma ter preços melhores.',
+      [
+        'Entendo. Vamos comparar as opções e ver qual apresenta o melhor custo-benefício para o que você procura.',
+        'Aqui também temos preços bons.',
+        'Preço não é tudo.',
+        'Então compre lá.'
+      ], [10, 5, 3, -10], 'objecao'
+    ],
+    [
+      'Também não quero comprar muita coisa e depois ficar sobrando.',
+      [
+        'Podemos pensar no que você realmente consome durante a semana para evitar desperdício.',
+        'É melhor levar um pouco a mais.',
+        'Depois você congela.',
+        'Pode comprar bastante, porque sempre dá para usar.'
+      ], [10, 5, 3, -5], 'necessidade'
+    ],
+    [
+      'Hoje estou meio sem tempo.',
+      [
+        'Sem problema. Posso ser objetivo e te mostrar apenas as opções que fazem sentido.',
+        'É rapidinho, então posso te mostrar algumas coisas.',
+        'Você consegue esperar alguns minutos.',
+        'Então deixa para outro dia.'
+      ], [10, 5, -3, -5], 'abordagem'
+    ],
+    [
+      'Tá, essa opção parece interessante.',
+      [
+        'Ela combina com o que você me contou. Se quiser, posso explicar rapidamente por que pensei nela.',
+        'Eu também acho.',
+        'É uma das melhores.',
+        'Pode confiar em mim.'
+      ], [10, 5, 3, -3], 'oferta'
+    ],
+    [
+      'Vou levar. Quero testar para ver se gosto.',
+      [
+        'Perfeito. Depois você já vai saber se ela funciona para a sua rotina.',
+        'Boa. Espero que goste.',
+        'Você não vai se arrepender.',
+        'Tenho certeza que vai gostar.'
+      ], [10, 5, 3, 0], 'fechamento'
+    ]
+  ]),
+
+  criarCliente({
+    id: 'cliente4', nome: 'Camila', area: 'Desafio 4 · Objeções', dificuldade: '⭐⭐⭐⭐',
+    perfil: 'Tem pressa, restrições alimentares e precisa controlar gastos e desperdício.',
+    status: 'Entre duas reuniões', x: 70, y: 34, satisfacaoInicial: 46,
+    objetivo: 'Atender com objetividade e organizar múltiplos critérios de escolha.',
+    licao: 'Rapidez não substitui escuta: organize praticidade, restrições, quantidade e orçamento.',
+    produtos: []
+  }, [
+    [
+      'Oi. Você pode me ajudar rapidinho?\n\n[VENDEDOR]: Claro. O que você está procurando?\n\nCAMILA: Algumas coisas para a semana, mas estou com bastante pressa.',
+      [
+        'Claro. Vou ser objetiva e entender primeiro o que você precisa.',
+        'Pode deixar que vou tentar ser rápida.',
+        'Tenho várias opções para te mostrar.',
+        'É só um minutinho, prometo.'
+      ], [10, 5, 3, -5], 'abordagem'
+    ],
+    [
+      'Preciso de coisas práticas. Durante a semana quase não tenho tempo para cozinhar.',
+      [
+        'Entendi. Então o mais importante é praticidade. Você costuma preparar as refeições de que forma?',
+        'Então produtos prontos seriam melhores.',
+        'Tenho alguns produtos rápidos.',
+        'Você deveria cozinhar no fim de semana.'
+      ], [10, 5, 3, -10], 'necessidade'
+    ],
+    [
+      'Eu também preciso tomar cuidado com alguns ingredientes.',
+      [
+        'Entendi. Vamos conferir as opções que se encaixam no que você pode consumir.',
+        'Acredito que essa opção seja tranquila.',
+        'Você pode conferir depois.',
+        'Acho que não precisa se preocupar tanto.'
+      ], [10, 3, -5, -10], 'necessidade'
+    ],
+    [
+      'Gostei, mas estou tentando não gastar muito essa semana.',
+      [
+        'Entendo. Podemos procurar uma alternativa que fique dentro do que você pretende gastar.',
+        'Posso mostrar uma opção mais barata.',
+        'Essa é a melhor opção mesmo sendo mais cara.',
+        'Se está caro, não tem muito o que fazer.'
+      ], [10, 5, 3, -10], 'objecao'
+    ],
+    [
+      'Eu não conheço muito esses produtos.',
+      [
+        'Sem problema. Posso explicar de forma simples o que muda entre as opções para você decidir.',
+        'Você pode experimentar.',
+        'Esse é um produto bastante conhecido.',
+        'É fácil, você vai gostar.'
+      ], [10, 5, 3, -3], 'pergunta'
+    ],
+    [
+      'Qual deles você escolheria para uma rotina corrida?',
+      [
+        'Eu escolheria este porque atende ao que você me contou sobre praticidade e tempo.',
+        'Esse aqui parece uma boa opção.',
+        'O mais barato.',
+        'O mais vendido.'
+      ], [10, 5, 3, 0], 'oferta'
+    ],
+    [
+      'Mas será que essa quantidade não é demais?',
+      [
+        'Podemos ajustar a quantidade ao seu consumo para evitar desperdício.',
+        'Você pode guardar o restante.',
+        'É melhor sobrar do que faltar.',
+        'Leva tudo de uma vez.'
+      ], [10, 5, 3, -5], 'necessidade'
+    ],
+    [
+      'Mesmo assim, achei um pouco caro.',
+      [
+        'Entendo. Pelo que você me contou, podemos comparar com uma alternativa mais econômica e ver qual atende melhor sua rotina.',
+        'Mas esse produto tem qualidade.',
+        'O preço está normal.',
+        'Você já chegou até aqui, então pode levar.'
+      ], [10, 5, 0, -10], 'objecao'
+    ],
+    [
+      'Tá. Acho que essa opção faz sentido.',
+      [
+        'Perfeito. Então vamos fechar essa opção.',
+        'Boa escolha.',
+        'Tem certeza?',
+        'Finalmente.'
+      ], [10, 5, 0, -10], 'fechamento', 'Obrigada, [VENDEDOR]. Você conseguiu ser rápido mesmo.'
+    ]
+  ]),
+
+  criarCliente({
+    id: 'cliente5', nome: 'André', area: 'Desafio 5 · Atendimento completo', dificuldade: '⭐⭐⭐⭐⭐',
+    perfil: 'Compra para quatro pessoas, tem pressa e precisa controlar o orçamento.',
+    status: 'Disponível por poucos minutos', x: 87, y: 39, satisfacaoInicial: 42,
+    objetivo: 'Juntar descoberta, quantidade, valor, confiança e fechamento.',
+    licao: 'Atendimento completo respeita tempo, orçamento, família e autoridade de decisão.',
+    produtos: []
+  }, [
+    [
+      'Oi. Estou procurando algumas coisas para casa.\n\n[VENDEDOR]: Claro. Você já sabe o que precisa?\n\nANDRÉ: Mais ou menos. Quero comprar para a semana, mas preciso controlar o orçamento.',
+      [
+        'Entendi. Posso fazer algumas perguntas para entender o que você realmente precisa?',
+        'Posso te mostrar algumas opções mais baratas.',
+        'Tenho algumas promoções.',
+        'Então vamos direto para os produtos baratos.'
+      ], [10, 5, 3, -5], 'pergunta'
+    ],
+    [
+      'Em casa somos quatro pessoas e normalmente fazemos comida todos os dias.',
+      [
+        'Então podemos pensar no consumo da semana para calcular uma quantidade que faça sentido.',
+        'Nesse caso, é melhor comprar bastante.',
+        'Quatro pessoas consomem bastante.',
+        'Então pega a maior embalagem.'
+      ], [10, 5, 3, -5], 'necessidade'
+    ],
+    [
+      'Mas eu estou com bastante pressa hoje.',
+      [
+        'Tudo bem. Vou focar apenas no que atende às suas necessidades.',
+        'Vou tentar ser rápido.',
+        'Tenho bastante coisa para mostrar.',
+        'Então você pode voltar outro dia.'
+      ], [10, 5, 3, -5], 'abordagem'
+    ],
+    [
+      'Também estou tentando economizar.',
+      [
+        'Entendo. Podemos montar uma opção que respeite seu orçamento sem levar produtos desnecessários.',
+        'Tenho algumas opções mais baratas.',
+        'Você pode comprar só o essencial.',
+        'Qualidade custa mais.'
+      ], [10, 5, 3, -5], 'objecao'
+    ],
+    [
+      'Eu vi um produto parecido por um preço menor.',
+      [
+        'Entendo. Vamos comparar as opções e ver qual apresenta o melhor custo-benefício para o que você precisa.',
+        'Mas esse produto também tem qualidade.',
+        'Pode ser parecido, mas não é igual.',
+        'Então compra o outro.'
+      ], [10, 5, 3, -10], 'objecao'
+    ],
+    [
+      'Eu também preciso ter certeza de que vou gostar antes de comprar uma quantidade maior.',
+      [
+        'Faz sentido. Podemos começar com uma quantidade menor e você avalia se funciona para sua rotina.',
+        'Você pode experimentar.',
+        'Acho difícil você não gostar.',
+        'Pode comprar bastante porque é um produto bom.'
+      ], [10, 5, 3, -5], 'necessidade'
+    ],
+    [
+      'Tá. Essa opção parece boa.',
+      [
+        'Pelo que você me contou, ela atende ao seu orçamento e à quantidade que sua família consome.',
+        'Ela é uma boa opção.',
+        'É uma das mais vendidas.',
+        'Eu compraria essa.'
+      ], [10, 5, 3, 0], 'oferta'
+    ],
+    [
+      'Mas eu preciso conversar com minha esposa antes de decidir.',
+      [
+        'Claro. Posso te passar as informações principais para você conversar com ela e vocês decidirem juntos.',
+        'Tudo bem, você pode perguntar para ela.',
+        'Mas você pode decidir sozinho.',
+        'Se esperar, talvez perca a oportunidade.'
+      ], [10, 5, -5, -10], 'objecao'
+    ],
+    [
+      'Ela provavelmente vai perguntar quanto custa e quanto vamos levar.',
+      [
+        'Então posso deixar claro o preço, a quantidade e por que essa opção atende ao que vocês precisam.',
+        'É só falar que vale a pena.',
+        'Fala que estava em promoção.',
+        'Diz que eu recomendei.'
+      ], [10, 5, -5, -3], 'oferta'
+    ],
+    [
+      'Na verdade, pensando bem, acho que já consigo decidir.',
+      [
+        'Perfeito. Então vamos fechar o que faz sentido para vocês.',
+        'Boa.',
+        'Tem certeza?',
+        'Eu sabia que você ia comprar.'
+      ], [10, 5, 0, -5], 'fechamento', 'Valeu, [VENDEDOR]. Você realmente entendeu o que eu precisava.'
+    ]
+  ])
 ];
