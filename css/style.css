@@ -86,6 +86,8 @@ h1, h2, p { overflow-wrap: anywhere; }
 .menu-painel h1 span { color: var(--coral); text-shadow: 3px 3px 0 var(--ink); }
 .menu-intro { max-width: 30ch; font-size: 18px; font-weight: 800; }
 .menu-acoes { display: grid; gap: 12px; margin-top: 28px; }
+.menu-atalhos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.menu-atalhos .botao { min-width: 0; padding-inline: 8px; }
 .resumo-menu { margin-top: 22px; padding-top: 16px; border-top: 2px dashed var(--ink); font-size: 13px; font-weight: 800; }
 
 /* Personalização do vendedor */
@@ -291,6 +293,9 @@ h1, h2, p { overflow-wrap: anywhere; }
 #tela-final .resultado-painel .sobretitulo { margin-top: 0; }
 #tela-final .resultado-painel h2 { margin: clamp(4px, .9vh, 9px) 0; font-size: clamp(27px, 4.5vh, 42px); line-height: 1.05; }
 #tela-final .resultado-painel .botao { min-height: clamp(42px, 5.8vh, 50px); margin-top: clamp(6px, 1vh, 10px); padding-block: clamp(7px, 1.4vh, 12px); }
+.acoes-finais { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 10px; }
+.acoes-finais #botao-publicar-ranking { grid-column: 1 / -1; }
+.acoes-finais .botao { min-width: 0; margin-top: 0 !important; }
 .metricas-finais { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin: 18px 0; text-align: left; }
 .metricas-finais > div { padding: 11px; border: 2px solid var(--ink); background: var(--cream); }
 .metricas-finais small { display: block; color: var(--teal); font: 7px/1.5 "Press Start 2P", monospace; }
@@ -319,7 +324,49 @@ h1, h2, p { overflow-wrap: anywhere; }
 .item-historico { display: grid; grid-template-columns: 1fr auto; gap: 5px 14px; padding: 14px; border: 3px solid var(--ink); background: var(--cream); box-shadow: 3px 3px 0 var(--ink); }
 .item-historico strong { font-size: 18px; }
 .item-historico small { grid-column: 1/-1; }
+.item-historico .publicar-historico { grid-column: 1 / -1; justify-self: start; min-height: 38px; padding: 6px 10px; font-size: 12px; }
 .vazio { padding: 30px; text-align: center; border: 2px dashed var(--ink); }
+/* Ranking como quadro de resultados do escritório. */
+#tela-ranking { min-height: 100dvh; padding: 28px; background: radial-gradient(circle at 80% 0%, #2ba6a1, var(--navy) 58%); }
+.ranking-wrap { width: min(840px, 100%); margin: auto; }
+.ranking-painel { padding: clamp(24px, 5vw, 42px); }
+.ranking-painel h2 { margin: 0; font-size: clamp(33px, 5vw, 52px); line-height: 1; }
+.ranking-intro { max-width: 60ch; margin: 12px 0 18px; font-weight: 800; }
+.ranking-conta { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 10px 12px; border: 2px dashed var(--ink); background: var(--cream); font-weight: 800; }
+.ranking-conta .botao { min-height: 38px; padding: 5px 12px; white-space: nowrap; }
+.ranking-status { margin: 18px 0 12px; font-weight: 900; }
+.ranking-lista { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.ranking-item { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 68px; padding: 8px 14px; border: 2px solid var(--ink); background: var(--cream); box-shadow: 3px 3px 0 var(--ink); }
+.ranking-item:first-child { border-color: #aa6c12; background: #fff1bb; box-shadow: 4px 4px 0 #aa6c12; }
+.ranking-posicao { font: 12px/1.2 "Press Start 2P", monospace; color: var(--teal); }
+.ranking-item:first-child .ranking-posicao { color: #916015; }
+.ranking-jogador { min-width: 0; }
+.ranking-jogador strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 19px; }
+.ranking-jogador small { color: var(--teal); font-weight: 900; }
+.ranking-pontos { text-align: right; font-size: 22px; font-weight: 900; }
+.ranking-pontos small { display: block; font: 7px/1.4 "Press Start 2P", monospace; }
+.ranking-atualizar { width: 100%; margin-top: 18px; }
+.conta-caixa { position: relative; max-height: calc(100dvh - 28px); overflow-y: auto; }
+.conta-caixa h2 { margin: 0; font-size: clamp(23px, 4vw, 30px); }
+.conta-intro { margin: 8px 0 18px; font-weight: 800; }
+.conta-fechar { position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; font-size: 21px; }
+.campo-conta { display: grid; gap: 5px; margin: 10px 0; color: var(--teal); font-weight: 900; }
+.campo-conta input { min-height: 44px; width: 100%; padding: 8px 10px; border: 2px solid var(--ink); background: var(--paper); color: var(--ink); }
+.campo-conta input:focus { outline: 3px solid var(--gold); outline-offset: 2px; }
+.conta-acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+.conta-acoes .botao { min-width: 0; padding-inline: 7px; font-size: 13px; }
+.conta-link { margin-top: 14px; padding: 0; border: 0; background: none; color: var(--teal); font-weight: 900; text-decoration: underline; cursor: pointer; }
+.conta-logada strong { overflow-wrap: anywhere; }
+.conta-logada p { margin: 8px 0; }
+.conta-publicacao { margin-top: 16px; padding: 11px; border: 2px dashed var(--ink); background: var(--cream); }
+.conta-publicacao small { display: block; color: var(--teal); font: 7px/1.4 "Press Start 2P", monospace; }
+.conta-publicacao strong { display: block; margin-top: 6px; }
+.conta-publicacao p { margin: 6px 0 10px; font-size: 12px; }
+.conta-publicacao .botao { width: 100%; }
+.conta-publicacao .botao:disabled { opacity: .5; cursor: not-allowed; }
+.conta-status { min-height: 20px; margin-bottom: 0; font-size: 13px; font-weight: 900; }
+.conta-status.erro { color: #a91e39; }
+.conta-status.sucesso { color: #17603c; }
 .modal[hidden] { display: none; }
 .modal { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(9,25,38,.78); }
 .modal-caixa { width: min(470px,100%); padding: 30px; }
@@ -338,6 +385,8 @@ h1, h2, p { overflow-wrap: anywhere; }
   .menu-painel h1 { font-size: clamp(40px, 14vw, 58px); }
   .menu-intro { font-size: 16px; }
   .menu-acoes { margin-top: 22px; }
+  .menu-atalhos { gap: 8px; }
+  .menu-atalhos .botao { font-size: 13px; }
   .botao { min-height: 54px; padding: 11px 13px; }
   #tela-personalizacao { padding: 16px; }
   .personalizacao-painel { padding: 24px 20px; }
@@ -392,6 +441,8 @@ h1, h2, p { overflow-wrap: anywhere; }
   .pontos-dialogo { display: none; }
   .resultado-painel { margin: auto 0; padding: 26px 20px; }
   #tela-final .resultado-painel { margin: auto; padding: clamp(14px, 2.2vh, 22px) clamp(14px, 4vw, 20px); }
+  .acoes-finais { gap: 6px; }
+  .acoes-finais .botao { font-size: 12px; }
   .resultado-painel h2 { font-size: clamp(27px, 9vw, 38px); }
   .mini-resumo-atendimento { gap: 5px; }
   .mini-resumo-atendimento p { padding: 7px; border-left-width: 3px; }
@@ -407,6 +458,16 @@ h1, h2, p { overflow-wrap: anywhere; }
   .historico-painel h2 { font-size: clamp(31px, 11vw, 40px); }
   .item-historico { grid-template-columns: 1fr; gap: 4px; }
   .item-historico small { grid-column: 1; }
+  #tela-ranking { padding: max(14px, env(safe-area-inset-top)) 12px max(18px, env(safe-area-inset-bottom)); }
+  .ranking-painel { padding: 23px 18px; }
+  .ranking-conta { align-items: stretch; flex-direction: column; font-size: 13px; }
+  .ranking-item { grid-template-columns: 36px minmax(0, 1fr) auto; gap: 7px; padding: 7px 8px; }
+  .ranking-posicao { font-size: 9px; }
+  .ranking-jogador strong { font-size: 15px; }
+  .ranking-jogador small { font-size: 10px; }
+  .ranking-pontos { font-size: 17px; }
+  .conta-acoes { gap: 7px; }
+  .conta-acoes .botao { font-size: 11px; }
   .modal { padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom)); }
   .modal-caixa { padding: 25px 20px; }
   #cutscene-cenario { padding: max(18px, env(safe-area-inset-top)) 10px 160px; }

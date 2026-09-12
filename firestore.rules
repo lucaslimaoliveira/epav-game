@@ -1,0 +1,43 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /ranking/{uid} {
+      allow get: if true;
+      allow list: if request.query.limit != null && request.query.limit <= 25;
+
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasAll([
+          'uid', 'nome', 'pontos', 'qualidadeQuartos', 'satisfacao',
+          'classificacao', 'tempoJogadoMs', 'publicadoEm', 'versao'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'uid', 'nome', 'pontos', 'qualidadeQuartos', 'satisfacao',
+          'classificacao', 'tempoJogadoMs', 'publicadoEm', 'versao'
+        ])
+        && request.resource.data.uid == uid
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() >= 2
+        && request.resource.data.nome.size() <= 20
+        && request.resource.data.pontos is int
+        && request.resource.data.pontos >= 0
+        && request.resource.data.pontos <= 400
+        && request.resource.data.qualidadeQuartos is int
+        && request.resource.data.qualidadeQuartos >= 0
+        && request.resource.data.qualidadeQuartos <= 160
+        && request.resource.data.satisfacao is int
+        && request.resource.data.satisfacao >= 0
+        && request.resource.data.satisfacao <= 100
+        && request.resource.data.classificacao is string
+        && request.resource.data.classificacao.size() <= 40
+        && request.resource.data.tempoJogadoMs is int
+        && request.resource.data.tempoJogadoMs >= 0
+        && request.resource.data.tempoJogadoMs <= 604800000
+        && request.resource.data.publicadoEm == request.time
+        && request.resource.data.versao == 2;
+
+      allow delete: if false;
+    }
+  }
+}

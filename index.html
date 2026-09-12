@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#12304a">
   <title>Fechando Negócio — EPAV</title>
-  <link rel="stylesheet" href="css/style.css?v=20260912-7">
+  <link rel="stylesheet" href="css/style.css?v=20260912-8">
 </head>
 <body>
   <main id="jogo">
@@ -17,7 +17,10 @@
         <div class="menu-acoes">
           <button id="botao-continuar" class="botao continuar" onclick="continuarPartidaSalva()" hidden>▶ Continuar partida</button>
           <button class="botao primario" onclick="solicitarNovoJogo()">▶ Novo jogo</button>
-          <button class="botao secundario" onclick="mostrarHistorico()">▦ Histórico</button>
+          <div class="menu-atalhos">
+            <button class="botao secundario" onclick="mostrarHistorico()">▦ Histórico</button>
+            <button class="botao secundario" onclick="EpavRanking.abrirRanking()">★ Ranking</button>
+          </div>
         </div>
         <div id="resumo-menu" class="resumo-menu" aria-live="polite"></div>
       </div>
@@ -159,8 +162,11 @@
           <p><small>PARA MELHORAR</small><strong id="melhoria-final">Tratamento de objeções relacionadas a preço.</strong></p>
         </div>
         <p id="pontuacao-final"></p>
-        <button class="botao primario" onclick="abrirPersonalizacao()">Jogar novamente</button>
-        <button class="botao secundario" onclick="mostrarTela('tela-menu')">Menu</button>
+        <div class="acoes-finais">
+          <button id="botao-publicar-ranking" class="botao continuar" onclick="EpavRanking.publicarTentativa()">★ Publicar no ranking</button>
+          <button class="botao primario" onclick="abrirPersonalizacao()">Jogar novamente</button>
+          <button class="botao secundario" onclick="mostrarTela('tela-menu')">Menu</button>
+        </div>
       </div>
     </section>
 
@@ -175,7 +181,54 @@
         </div>
       </div>
     </section>
+
+    <section id="tela-ranking" class="tela" aria-labelledby="titulo-ranking">
+      <div class="ranking-wrap">
+        <button class="botao-icone voltar" onclick="mostrarTela('tela-menu')" aria-label="Voltar ao menu">←</button>
+        <div class="painel ranking-painel">
+          <p class="sobretitulo">QUADRO DE RESULTADOS</p>
+          <h2 id="titulo-ranking">Ranking EPAV</h2>
+          <p class="ranking-intro">Mais pontos ficam acima. Em caso de empate, vence quem concluiu em menos tempo. Publicar é opcional; o e-mail nunca aparece.</p>
+          <div class="ranking-conta">
+            <span id="ranking-conta-texto">Entre por e-mail para publicar uma partida.</span>
+            <button id="ranking-conta-botao" class="botao secundario" onclick="EpavRanking.abrirConta()">Entrar</button>
+          </div>
+          <p id="ranking-status" class="ranking-status" role="status">Carregando resultados…</p>
+          <ol id="ranking-lista" class="ranking-lista" aria-live="polite"></ol>
+          <button class="botao secundario ranking-atualizar" onclick="EpavRanking.carregarRanking()">Atualizar ranking</button>
+        </div>
+      </div>
+    </section>
   </main>
+
+  <div id="modal-conta" class="modal" hidden>
+    <div class="modal-caixa painel-pixel conta-caixa" role="dialog" aria-modal="true" aria-labelledby="conta-titulo">
+      <button id="conta-fechar" type="button" class="botao-icone conta-fechar" onclick="EpavRanking.fecharConta()" aria-label="Fechar">×</button>
+      <p class="sobretitulo">CRACHÁ DO JOGADOR</p>
+      <h2 id="conta-titulo">Conta do ranking</h2>
+      <p class="conta-intro">O jogo funciona sem conta. Entre somente se quiser publicar uma partida.</p>
+      <form id="conta-formulario">
+        <label class="campo-conta" for="conta-email">E-mail<input id="conta-email" type="email" autocomplete="email" required></label>
+        <label class="campo-conta" for="conta-senha">Senha<input id="conta-senha" type="password" autocomplete="current-password" minlength="6" required></label>
+        <div class="conta-acoes">
+          <button id="conta-entrar" class="botao primario" type="submit">Entrar</button>
+          <button id="conta-criar" class="botao secundario" type="button">Criar conta</button>
+        </div>
+        <button id="conta-recuperar" class="conta-link" type="button">Esqueci minha senha</button>
+      </form>
+      <div id="conta-logada" class="conta-logada" hidden>
+        <strong id="conta-email-logado"></strong>
+        <button id="conta-sair" class="conta-link" type="button">Sair da conta</button>
+      </div>
+      <div id="conta-publicacao" class="conta-publicacao" hidden>
+        <small>PUBLICAÇÃO OPCIONAL</small>
+        <strong id="conta-publicacao-resumo"></strong>
+        <p>Esta partida substituirá sua posição anterior no ranking. Seu e-mail não será exibido.</p>
+        <button id="conta-publicar" class="botao continuar" type="button">Confirmar publicação</button>
+      </div>
+      <p id="conta-status" class="conta-status" role="status" aria-live="polite"></p>
+    </div>
+  </div>
 
   <div id="modal" class="modal" hidden>
     <div class="modal-caixa painel-pixel" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
@@ -188,7 +241,9 @@
     </div>
   </div>
 
-  <script src="js/clientsData.js?v=20260912-7"></script>
-  <script src="js/game.js?v=20260912-7"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/clientsData.js?v=20260912-8"></script>
+  <script src="js/game.js?v=20260912-9"></script>
+  <script src="js/ranking.js?v=20260912-9"></script>
 </body>
 </html>

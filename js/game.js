@@ -25,6 +25,7 @@ const estado = {
   desempenhoAtendimento: {},
   saldoQualidade: 0,
   clienteRecemLiberado: null,
+  tempoJogadoMs: 0,
   etapa: 'menu'
 };
 
@@ -37,6 +38,40 @@ let elementoDigitacao = null;
 let concluirDigitacaoAtual = null;
 let temporizadorAvancoDialogo = null;
 let temporizadorInsight = null;
+let ultimaTentativaId = null;
+let inicioTrechoJogoMs = null;
+let partidaConcluida = false;
+
+function tempoJogadoAtualMs() {
+  const trecho = inicioTrechoJogoMs === null ? 0 : performance.now() - inicioTrechoJogoMs;
+  return Math.max(0, Math.round(estado.tempoJogadoMs + trecho));
+}
+
+function pausarTempoJogo() {
+  if (inicioTrechoJogoMs === null) return;
+  estado.tempoJogadoMs = tempoJogadoAtualMs();
+  inicioTrechoJogoMs = null;
+}
+
+function sincronizarCronometro() {
+  const tela = document.querySelector('.tela.ativa')?.id;
+  const jogando = ['tela-escritorio', 'tela-dialogo', 'tela-resultado'].includes(tela)
+    && !document.hidden && document.getElementById('modal').hidden && !partidaConcluida;
+  if (jogando && inicioTrechoJogoMs === null) inicioTrechoJogoMs = performance.now();
+  if (!jogando) pausarTempoJogo();
+}
+
+function formatarTempoJogo(milissegundos) {
+  const totalCentessimos = Math.floor(Math.max(0, Number(milissegundos) || 0) / 10);
+  const segundos = Math.floor(totalCentessimos / 100);
+  const minutos = Math.floor(segundos / 60);
+  const horas = Math.floor(minutos / 60);
+  const parteSegundos = String(segundos % 60).padStart(2, '0');
+  const parteCentessimos = String(totalCentessimos % 100).padStart(2, '0');
+  return horas
+    ? `${horas}:${String(minutos % 60).padStart(2, '0')}:${parteSegundos},${parteCentessimos}`
+    : `${String(minutos).padStart(2, '0')}:${parteSegundos},${parteCentessimos}`;
+}
 
 const nomesCategorias = {
   observacao: 'Leitura do contexto',
@@ -376,6 +411,12 @@ function atualizarIdentidadeVendedor() {
 }
 
 function mostrarTela(id) {
+  const telaAnterior = document.querySelector('.tela.ativa')?.id;
+  if (['tela-escritorio', 'tela-dialogo', 'tela-resultado'].includes(telaAnterior)
+      && !['tela-escritorio', 'tela-dialogo', 'tela-resultado'].includes(id)) {
+    pausarTempoJogo();
+    if (!partidaConcluida) salvarProgresso();
+  }
   if (id !== 'tela-dialogo') {
     cancelarDigitacao();
     clearTimeout(temporizadorAvancoDialogo);
@@ -386,10 +427,14 @@ function mostrarTela(id) {
   document.querySelectorAll('.tela').forEach(tela => tela.classList.remove('ativa'));
   const destino = document.getElementById(id);
   if (destino) destino.classList.add('ativa');
+  sincronizarCronometro();
   if (id === 'tela-menu') atualizarResumoMenu();
 }
 
 function iniciarJogo() {
+  pausarTempoJogo();
+  partidaConcluida = false;
+  ultimaTentativaId = null;
   estado.temporizadores.forEach(clearTimeout);
   localStorage.removeItem(CHAVE_PROGRESSO);
   Object.assign(estado, {
@@ -417,6 +462,7 @@ function iniciarJogo() {
     desempenhoAtendimento: {},
     saldoQualidade: 0,
     clienteRecemLiberado: null,
+    tempoJogadoMs: 0,
     etapa: 'escritorio'
   });
   atualizarIdentidadeVendedor();
@@ -839,6 +885,9 @@ function avaliarCompetencias(mapa = estado.desempenhoCategorias) {
 }
 
 function finalizarJogo() {
+  if (partidaConcluida) return;
+  pausarTempoJogo();
+  partidaConcluida = true;
   const classificacao = calcularClassificacao(estado.pontuacaoTotal);
   const totalDecisoes = clientes.reduce((total, cliente) => total + cliente.decisoes, 0);
   const satisfacaoMedia = Math.round(estado.satisfacaoAcumulada / clientes.length);
@@ -857,7 +906,7 @@ function finalizarJogo() {
   const avaliacao = avaliarCompetencias();
   document.getElementById('ponto-forte-final').textContent = avaliacao.forte;
   document.getElementById('melhoria-final').textContent = avaliacao.melhoria;
-  document.getElementById('pontuacao-final').textContent = `${estado.pontuacaoTotal}/400 pontos · ${estado.erros} decisões a revisar`;
+  document.getElementById('pontuacao-final').textContent = `${estado.pontuacaoTotal}/400 pontos · ${estado.erros} decisões a revisar · tempo ${formatarTempoJogo(estado.tempoJogadoMs)}`;
   document.getElementById('vendedor-final').src = estado.pontuacaoTotal >= 241
     ? imagemVendedor('comemorando') : imagemVendedor('feliz');
   atualizarIdentidadeVendedor();
@@ -948,19 +997,52 @@ function mostrarResultadoFinal() {
 
 function salvarTentativa(classificacao, indiceQualidade = null) {
   const historico = lerHistorico();
+  const id = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   historico.push({
+    id,
     data: new Date().toISOString(), pontuacao: estado.pontuacaoTotal, classificacao,
-    clientes: clientes.length, erros: estado.erros, acertos: estado.acertos, maximo: 400, versao: 5,
+    clientes: clientes.length, erros: estado.erros, acertos: estado.acertos, maximo: 400, versao: 6,
     nomeVendedor: estado.nomeVendedor, sexoVendedor: estado.sexoVendedor,
+    tempoJogadoMs: estado.tempoJogadoMs,
     indiceQualidade,
+    satisfacaoMedia: Math.round(estado.satisfacaoAcumulada / clientes.length),
     desempenhoCategorias: estado.desempenhoCategorias
   });
   localStorage.setItem('historicoEpav', JSON.stringify(historico));
+  ultimaTentativaId = id;
 }
 
 function lerHistorico() {
   try { return JSON.parse(localStorage.getItem('historicoEpav') || '[]'); }
   catch { return []; }
+}
+
+function obterTentativaParaRanking(id = ultimaTentativaId) {
+  if (!id) return null;
+  const tentativa = lerHistorico().find(item => item.id === id);
+  if (!tentativa || tentativa.versao < 6 || tentativa.maximo !== 400
+      || !Number.isInteger(tentativa.tempoJogadoMs) || tentativa.tempoJogadoMs < 0) return null;
+  return {
+    id: tentativa.id,
+    nome: String(tentativa.nomeVendedor || 'Vendedor').trim().slice(0, 20),
+    pontos: tentativa.pontuacao,
+    qualidadeQuartos: Math.round((tentativa.indiceQualidade || 0) * 4),
+    satisfacao: Math.round(tentativa.satisfacaoMedia || 0),
+    classificacao: String(tentativa.classificacao || '').slice(0, 40),
+    tempoJogadoMs: tentativa.tempoJogadoMs,
+    publicadoPor: tentativa.publicadoPor || null
+  };
+}
+
+function marcarTentativaPublicada(id, uid) {
+  const historico = lerHistorico();
+  const tentativa = historico.find(item => item.id === id);
+  if (!tentativa) return;
+  tentativa.publicadoPor = uid;
+  localStorage.setItem('historicoEpav', JSON.stringify(historico));
+  if (document.getElementById('tela-historico').classList.contains('ativa')) mostrarHistorico();
 }
 
 function salvarProgresso() {
@@ -993,6 +1075,7 @@ function salvarProgresso() {
     desempenhoCategorias: estado.desempenhoCategorias,
     desempenhoAtendimento: estado.desempenhoAtendimento,
     saldoQualidade: estado.saldoQualidade,
+    tempoJogadoMs: tempoJogadoAtualMs(),
     clienteRecemLiberado: estado.clienteRecemLiberado
   };
   localStorage.setItem(CHAVE_PROGRESSO, JSON.stringify(progresso));
@@ -1023,6 +1106,8 @@ function continuarPartidaSalva() {
     return;
   }
 
+  pausarTempoJogo();
+  partidaConcluida = false;
   estado.temporizadores.forEach(clearTimeout);
   const perfilSalvo = lerPerfilVendedor();
   Object.assign(estado, {
@@ -1051,6 +1136,8 @@ function continuarPartidaSalva() {
     desempenhoCategorias: progresso.desempenhoCategorias && typeof progresso.desempenhoCategorias === 'object' ? progresso.desempenhoCategorias : {},
     desempenhoAtendimento: progresso.desempenhoAtendimento && typeof progresso.desempenhoAtendimento === 'object' ? progresso.desempenhoAtendimento : {},
     saldoQualidade: Number(progresso.saldoQualidade) || 0,
+    tempoJogadoMs: Number.isFinite(progresso.tempoJogadoMs) && progresso.tempoJogadoMs >= 0
+      ? Math.round(progresso.tempoJogadoMs) : 0,
     clienteRecemLiberado: progresso.clienteRecemLiberado || null,
     etapa: progresso.etapa
   });
@@ -1094,7 +1181,27 @@ function mostrarHistorico() {
         ? ` · qualidade ${tentativa.indiceQualidade.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}/40`
         : Number.isInteger(tentativa.acertos) ? ` · ${tentativa.acertos}/40 corretas` : ' · versão anterior';
       const vendedor = tentativa.nomeVendedor ? `${tentativa.nomeVendedor} · ` : '';
-      item.innerHTML = `<strong>Tentativa ${numero}</strong><strong>${pontuacao}</strong><span>${tentativa.classificacao}</span><span>${data}</span><small>${vendedor}${tentativa.clientes || 5}/5 clientes${resumoQualidade} · ${tentativa.erros ?? 0} decisões a revisar</small>`;
+      const campos = [
+        ['strong', `Tentativa ${numero}`],
+        ['strong', pontuacao],
+        ['span', String(tentativa.classificacao || '')],
+        ['span', data],
+        ['small', `${vendedor}${tentativa.clientes || 5}/5 clientes${resumoQualidade} · ${tentativa.erros ?? 0} decisões a revisar${Number.isInteger(tentativa.tempoJogadoMs) ? ` · tempo ${formatarTempoJogo(tentativa.tempoJogadoMs)}` : ''}`]
+      ];
+      campos.forEach(([tag, texto]) => {
+        const campo = document.createElement(tag);
+        campo.textContent = texto;
+        item.appendChild(campo);
+      });
+      if (tentativa.id && tentativa.versao >= 6 && tentativa.maximo === 400) {
+        const publicar = document.createElement('button');
+        publicar.type = 'button';
+        publicar.className = 'botao publicar-historico';
+        publicar.textContent = tentativa.publicadoPor ? '✓ Publicada no ranking' : 'Publicar no ranking';
+        publicar.disabled = Boolean(tentativa.publicadoPor);
+        publicar.onclick = () => window.EpavRanking.publicarTentativa(tentativa.id);
+        item.appendChild(publicar);
+      }
       container.appendChild(item);
     });
   }
@@ -1113,7 +1220,9 @@ function atualizarResumoMenu() {
     const pontosEmAndamento = progresso.etapa === 'dialogo' ? Number(progresso.pontuacaoAtendimento || 0) : 0;
     const pontosSalvos = Number(progresso.pontuacaoTotal || 0) + pontosEmAndamento;
     const nome = progresso.nomeVendedor ? `${progresso.nomeVendedor} · ` : '';
-    resumo.textContent = `Partida salva · ${nome}cliente ${cliente}/${clientes.length} · ${pontosSalvos.toLocaleString('pt-BR')} pontos`;
+    const tempoSalvo = Number.isFinite(progresso.tempoJogadoMs)
+      ? ` · tempo ${formatarTempoJogo(progresso.tempoJogadoMs)}` : '';
+    resumo.textContent = `Partida salva · ${nome}cliente ${cliente}/${clientes.length} · ${pontosSalvos.toLocaleString('pt-BR')} pontos${tempoSalvo}`;
   } else if (!historico.length) resumo.textContent = 'Nenhuma missão concluída. Sua primeira negociação começa agora.';
   else {
     const historicoAtual = historico.filter(tentativa => tentativa.maximo === 400);
@@ -1142,6 +1251,8 @@ function confirmarSaida() {
 }
 
 function abrirModal(titulo, texto, rotulo, acao) {
+  pausarTempoJogo();
+  salvarProgresso();
   const modal = document.getElementById('modal');
   document.getElementById('modal-titulo').textContent = titulo;
   document.getElementById('modal-texto').textContent = texto;
@@ -1154,7 +1265,17 @@ function abrirModal(titulo, texto, rotulo, acao) {
 
 function fecharModal() {
   document.getElementById('modal').hidden = true;
+  sincronizarCronometro();
 }
+
+document.addEventListener('visibilitychange', () => {
+  sincronizarCronometro();
+  if (document.hidden) salvarProgresso();
+});
+window.addEventListener('pagehide', () => {
+  pausarTempoJogo();
+  salvarProgresso();
+});
 
 document.addEventListener('keydown', evento => {
   const modalAberto = !document.getElementById('modal').hidden;
