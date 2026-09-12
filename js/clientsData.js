@@ -39,8 +39,10 @@ function criarCliente(configuracao, decisoes) {
 const clientes = [
   criarCliente({
     id: 'cliente1', nome: 'Lucas', area: 'Desafio 1 · Abordagem', dificuldade: '⭐',
+    imagem: 'cliente1-v2.png',
+    reacoes: { positiva: 'cliente1-reacao-positiva.png', negativa: 'cliente1-reacao-negativa.png' },
     perfil: 'Vai preparar um churrasco para seis pessoas e procura praticidade sem desperdício.',
-    status: 'Terminando uma tarefa', x: 14, y: 43, satisfacaoInicial: 55,
+    status: 'Terminando uma tarefa', x: 33, y: 36, satisfacaoInicial: 55,
     tempoOcupadoInicial: 3500,
     motivoOcupado: 'Está terminando uma coisa. Observe o momento antes de abordar.',
     objetivo: 'Aprender a abordar, entender a necessidade e fechar sem pressionar.',
@@ -105,8 +107,10 @@ const clientes = [
 
   criarCliente({
     id: 'cliente2', nome: 'Marina', area: 'Desafio 2 · Descoberta', dificuldade: '⭐⭐',
+    imagem: 'cliente2-v2.png',
+    reacoes: { positiva: 'cliente2-reacao-positiva.png', negativa: 'cliente2-reacao-negativa.png' },
     perfil: 'Mora sozinha, tem restrições alimentares e procura um jantar prático.',
-    status: 'Organizando a agenda', x: 33, y: 36, satisfacaoInicial: 52,
+    status: 'Organizando a agenda', x: 14, y: 43, satisfacaoInicial: 52,
     objetivo: 'Descobrir necessidades, restrições e custo-benefício antes da oferta.',
     licao: 'Uma boa recomendação considera rotina, quantidade, restrições e preço.',
     produtos: []
@@ -178,6 +182,8 @@ const clientes = [
 
   criarCliente({
     id: 'cliente3', nome: 'Rafael', area: 'Desafio 3 · Valor', dificuldade: '⭐⭐⭐',
+    imagem: 'cliente3-v2.png',
+    reacoes: { positiva: 'cliente3-reacao-positiva.png', negativa: 'cliente3-reacao-negativa.png' },
     perfil: 'Compra carnes para a semana, compara preços e já frequenta outra loja.',
     status: 'Conferindo preços', x: 52, y: 41, satisfacaoInicial: 49,
     objetivo: 'Construir valor considerando rotina, concorrência, quantidade e tempo.',
@@ -260,6 +266,8 @@ const clientes = [
 
   criarCliente({
     id: 'cliente4', nome: 'Camila', area: 'Desafio 4 · Objeções', dificuldade: '⭐⭐⭐⭐',
+    imagem: 'cliente4-v2.png',
+    reacoes: { positiva: 'cliente4-reacao-positiva.png', negativa: 'cliente4-reacao-negativa.png' },
     perfil: 'Tem pressa, restrições alimentares e precisa controlar gastos e desperdício.',
     status: 'Entre duas reuniões', x: 70, y: 34, satisfacaoInicial: 46,
     objetivo: 'Atender com objetividade e organizar múltiplos critérios de escolha.',
@@ -351,6 +359,8 @@ const clientes = [
 
   criarCliente({
     id: 'cliente5', nome: 'André', area: 'Desafio 5 · Atendimento completo', dificuldade: '⭐⭐⭐⭐⭐',
+    imagem: 'cliente5.png',
+    reacoes: { positiva: 'cliente5-reacao-positiva.png', negativa: 'cliente5-reacao-negativa.png' },
     perfil: 'Compra para quatro pessoas, tem pressa e precisa controlar o orçamento.',
     status: 'Disponível por poucos minutos', x: 87, y: 39, satisfacaoInicial: 42,
     objetivo: 'Juntar descoberta, quantidade, valor, confiança e fechamento.',

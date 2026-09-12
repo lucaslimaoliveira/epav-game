@@ -53,10 +53,23 @@ h1, h2, p { overflow-wrap: anywhere; }
 #tela-menu, #tela-personalizacao, #tela-resultado, #tela-final {
   background-position: center; background-size: cover; padding: clamp(22px, 6vw, 72px);
 }
-#tela-menu { background-image: linear-gradient(90deg, rgba(18,48,74,.25), transparent 60%), url('../assets/images/img1.jpg'); }
-#tela-personalizacao { background-image: linear-gradient(rgba(18,48,74,.28), rgba(18,48,74,.58)), url('../assets/images/img1.jpg'); }
+#tela-menu {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  background-image: linear-gradient(90deg, rgba(18,48,74,.3), transparent 58%), url('../assets/images/tela-principal-v2.png');
+}
+#tela-personalizacao { background-image: linear-gradient(rgba(18,48,74,.28), rgba(18,48,74,.58)), url('../assets/images/tela-principal-v2.png'); }
 #tela-resultado { background-image: url('../assets/images/img2.jpg'); }
-#tela-final { background-image: url('../assets/images/img3.jpg'); }
+#tela-final {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  padding: clamp(10px, 2.2vh, 22px) clamp(14px, 4vw, 48px);
+  background-image: url('../assets/images/img3.jpg');
+}
 #tela-menu.ativa, #tela-personalizacao.ativa, #tela-resultado.ativa, #tela-final.ativa { display: flex; align-items: center; }
 .menu-painel { width: min(470px, 100%); padding: clamp(28px, 5vw, 48px); }
 .menu-painel h1 { margin: 0; font-size: clamp(42px, 7vw, 76px); line-height: .87; letter-spacing: -.06em; }
@@ -97,7 +110,7 @@ h1, h2, p { overflow-wrap: anywhere; }
 #nome-vendedor-hud { display: block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dica-observacao { position: absolute; z-index: 20; top: 20px; left: 50%; transform: translateX(-50%); padding: 10px 14px; border: 3px solid var(--ink); background: var(--cream); box-shadow: 4px 4px 0 var(--ink); font-weight: 900; }
 .dica-observacao span { display: inline-grid; place-items: center; width: 24px; height: 24px; margin-right: 7px; background: var(--gold); border: 2px solid var(--ink); }
-#vendedor-sprite { position: absolute; z-index: 8; bottom: 1%; left: 3%; width: clamp(180px, 19vw, 320px); max-height: 58vh; object-fit: contain; filter: drop-shadow(0 14px 12px rgba(0,0,0,.36)); }
+#vendedor-sprite { position: absolute; z-index: 8; bottom: 1%; left: 50%; width: clamp(180px, 19vw, 320px); max-height: 58vh; object-fit: contain; transform: translateX(-50%); filter: drop-shadow(0 14px 12px rgba(0,0,0,.36)); }
 .marcador-cliente { position: absolute; z-index: 12; width: 46px; height: 40px; transform: translate(-50%,-50%); background: var(--paper); border: 3px solid var(--ink); border-radius: 50% 50% 50% 5px; cursor: pointer; box-shadow: 3px 3px 0 var(--ink); }
 .marcador-cliente::before { content: "?"; position: absolute; inset: 0; display: grid; place-items: center; font: 14px "Press Start 2P", monospace; }
 .marcador-cliente:hover, .marcador-cliente:focus-within { z-index: 30; }
@@ -117,7 +130,7 @@ h1, h2, p { overflow-wrap: anywhere; }
 .popup-cliente button { width: 100%; margin-top: 9px; padding: 8px; border: 2px solid var(--ink); background: var(--coral); color: white; font-weight: 900; cursor: pointer; }
 
 /* Atendimento */
-#cenario-dialogo { position: relative; min-height: 100vh; min-height: 100dvh; overflow: hidden; background: center/cover url('../assets/images/escritorio-closeup.png'); }
+#cenario-dialogo { position: relative; min-height: 100vh; min-height: 100dvh; overflow: hidden; background: center/cover url('../assets/images/escritorio-dialogo-v2.png'); }
 #cenario-dialogo::before { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 25%, rgba(18,48,74,.2)); }
 .hud-dialogo { position: absolute; z-index: 20; top: 16px; left: 16px; right: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .botao-icone { width: 44px; height: 44px; border: 3px solid var(--ink); background: var(--paper); box-shadow: 3px 3px 0 var(--ink); color: var(--ink); font-size: 25px; font-weight: 900; cursor: pointer; }
@@ -129,6 +142,14 @@ h1, h2, p { overflow-wrap: anywhere; }
 .palco-personagens { position: absolute; z-index: 3; inset: 8% 5% 45%; display: flex; align-items: flex-end; justify-content: space-between; pointer-events: none; }
 #vendedor-dialogo { flex: 0 0 auto; width: min(42vw, 430px); height: min(58vh, 520px); object-fit: contain; object-position: center bottom; transform: translateY(8vh); filter: drop-shadow(0 14px 11px rgba(0,0,0,.28)); }
 #cliente-retrato { width: min(32vw, 330px); height: min(45vh, 400px); max-height: 100%; object-fit: cover; object-position: top; border: 4px solid var(--ink); box-shadow: 7px 7px 0 var(--ink); background: var(--cream); }
+#cliente-retrato[data-reacao="positiva"] { box-shadow: 7px 7px 0 #2c9a62, 0 0 24px rgba(88,185,87,.5); }
+#cliente-retrato[data-reacao="negativa"] { box-shadow: 7px 7px 0 #a91e39, 0 0 24px rgba(207,69,84,.48); }
+#cliente-retrato.reacao-ativa { animation: reacao-cliente .42s cubic-bezier(.2,.9,.25,1); }
+@keyframes reacao-cliente {
+  0% { opacity: .35; transform: translateY(10px) scale(.94); }
+  65% { transform: translateY(-4px) scale(1.025); }
+  100% { opacity: 1; transform: none; }
+}
 .dialogo-area { position: absolute; z-index: 10; left: 50%; bottom: 18px; width: min(860px, calc(100% - 32px)); transform: translateX(-50%); }
 #balao-fala { min-height: 108px; padding: 28px 24px 18px; overflow: visible; }
 #balao-fala::after { content: ""; position: absolute; top: -18px; right: 15%; width: 28px; height: 28px; background: var(--paper); border-left: 4px solid var(--ink); border-top: 4px solid var(--ink); transform: rotate(45deg); }
@@ -199,6 +220,14 @@ h1, h2, p { overflow-wrap: anywhere; }
 .resultado-painel { width: min(520px, 100%); margin: auto; padding: 36px; text-align: center; }
 .resultado-painel h2 { margin: 10px 0; font-size: clamp(28px,5vw,45px); }
 .resultado-painel .botao { width: 100%; margin-top: 12px; }
+#tela-final .resultado-painel {
+  max-height: calc(100dvh - clamp(20px, 4.4vh, 44px));
+  padding: clamp(18px, 2.8vh, 30px);
+}
+#tela-final .resultado-painel > p { margin-block: clamp(6px, 1.25vh, 12px); line-height: 1.3; }
+#tela-final .resultado-painel .sobretitulo { margin-top: 0; }
+#tela-final .resultado-painel h2 { margin: clamp(4px, .9vh, 9px) 0; font-size: clamp(27px, 4.5vh, 42px); line-height: 1.05; }
+#tela-final .resultado-painel .botao { min-height: clamp(42px, 5.8vh, 50px); margin-top: clamp(6px, 1vh, 10px); padding-block: clamp(7px, 1.4vh, 12px); }
 .metricas-finais { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin: 18px 0; text-align: left; }
 .metricas-finais > div { padding: 11px; border: 2px solid var(--ink); background: var(--cream); }
 .metricas-finais small { display: block; color: var(--teal); font: 7px/1.5 "Press Start 2P", monospace; }
@@ -206,6 +235,11 @@ h1, h2, p { overflow-wrap: anywhere; }
 .selo-resultado { display: inline-grid; place-items: center; width: 72px; height: 64px; background: var(--green); border: 4px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); color: white; font-size: 35px; border-radius: 50% 50% 50% 8px; }
 .trofeu { font-size: 70px; filter: drop-shadow(4px 4px 0 var(--ink)); }
 .vendedor-final { width: 180px; height: 225px; object-fit: contain; float: right; margin: -24px -14px 2px 12px; filter: drop-shadow(5px 7px 0 rgba(23,36,51,.22)); }
+#tela-final .trofeu { font-size: clamp(46px, 7.5vh, 68px); }
+#tela-final .vendedor-final { width: clamp(120px, 17vh, 170px); height: clamp(145px, 22vh, 210px); }
+#tela-final .metricas-finais { gap: clamp(6px, 1vh, 9px); margin: clamp(8px, 1.5vh, 15px) 0; }
+#tela-final .metricas-finais > div { padding: clamp(7px, 1.1vh, 10px); }
+#tela-final .metricas-finais strong { margin-top: clamp(3px, .7vh, 6px); font-size: clamp(17px, 2.6vh, 21px); }
 .licao { margin: 18px 0; padding: 13px; border: 2px dashed var(--ink); background: var(--cream); font-weight: 800; }
 #tela-historico { padding: 28px; background: radial-gradient(circle at 10% 10%, #2ba6a1, var(--navy) 55%); }
 .historico-wrap { width: min(760px,100%); margin: auto; }
@@ -229,7 +263,8 @@ h1, h2, p { overflow-wrap: anywhere; }
   #tela-menu, #tela-personalizacao, #tela-resultado, #tela-final {
     min-height: 100dvh; padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
   }
-  #tela-menu.ativa, #tela-personalizacao.ativa, #tela-resultado.ativa, #tela-final.ativa { align-items: flex-start; overflow-y: auto; }
+  #tela-menu.ativa, #tela-personalizacao.ativa, #tela-resultado.ativa { align-items: flex-start; overflow-y: auto; }
+  #tela-final.ativa { align-items: center; overflow: hidden; }
   .menu-painel { margin: auto 0; padding: 28px 24px; }
   .menu-painel h1 { font-size: clamp(40px, 14vw, 58px); }
   .menu-intro { font-size: 16px; }
@@ -276,9 +311,11 @@ h1, h2, p { overflow-wrap: anywhere; }
   .dica-teclado { display: none; }
   .pontos-dialogo { display: none; }
   .resultado-painel { margin: auto 0; padding: 26px 20px; }
+  #tela-final .resultado-painel { margin: auto; padding: clamp(14px, 2.2vh, 22px) clamp(14px, 4vw, 20px); }
   .resultado-painel h2 { font-size: clamp(27px, 9vw, 38px); }
   .vendedor-final { float: none; width: 145px; height: 175px; margin: -12px auto 0; display: block; }
-  .metricas-finais { grid-template-columns: 1fr; }
+  #tela-final .vendedor-final { float: right; margin: -18px -8px 0 8px; }
+  #tela-final .metricas-finais { grid-template-columns: 1fr 1fr; }
   #tela-historico { padding: max(14px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
   .historico-painel { padding: 24px 18px; }
   .historico-painel h2 { font-size: clamp(31px, 11vw, 40px); }
@@ -329,8 +366,18 @@ h1, h2, p { overflow-wrap: anywhere; }
 }
 
 @media (max-height: 620px) and (orientation: landscape) {
-  #tela-menu, #tela-personalizacao, #tela-resultado, #tela-final { align-items: flex-start; }
+  #tela-menu, #tela-personalizacao, #tela-resultado { align-items: flex-start; }
+  #tela-final { align-items: center; }
   .menu-painel, .personalizacao-painel, .resultado-painel { margin: 14px auto; }
+  #tela-final .resultado-painel { margin: auto; padding: 12px 18px; }
+  #tela-final .sobretitulo { font-size: 7px; }
+  #tela-final .vendedor-final { width: 92px; height: 112px; margin: -12px -5px 0 8px; }
+  #tela-final .trofeu { font-size: 38px; }
+  #tela-final .resultado-painel h2 { font-size: clamp(23px, 7vh, 31px); }
+  #tela-final .resultado-painel > p { margin-block: 4px; font-size: 13px; }
+  #tela-final .metricas-finais { margin-block: 6px; }
+  #tela-final .metricas-finais > div { padding: 5px 7px; }
+  #tela-final .resultado-painel .botao { min-height: 36px; margin-top: 5px; padding-block: 5px; }
   .palco-personagens { inset: 12% 3% 51%; }
   #vendedor-dialogo { height: 43vh; transform: translateY(4vh); }
   #cliente-retrato { height: 32vh; }
@@ -338,6 +385,13 @@ h1, h2, p { overflow-wrap: anywhere; }
   #texto-cliente { font-size: 14px; }
   #opcoes-resposta { max-height: 25vh; }
   .dica-teclado { display: none; }
+  #tela-menu.ativa { align-items: center; padding-block: 10px; }
+  #tela-menu .menu-painel { margin: 0 auto; padding-block: 18px; }
+  #tela-menu .menu-painel h1 { font-size: clamp(36px, 10vh, 52px); }
+  #tela-menu .menu-intro { margin-block: 10px; font-size: 15px; }
+  #tela-menu .menu-acoes { gap: 7px; margin-top: 14px; }
+  #tela-menu .botao { min-height: 42px; padding-block: 8px; }
+  #tela-menu .resumo-menu { margin-top: 12px; padding-top: 10px; }
 }
 
 @media (pointer: coarse) {

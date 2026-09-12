@@ -56,6 +56,36 @@ function imagemVendedor(expressao = 'parado') {
   return `assets/images/vendedor-${expressao}.png`;
 }
 
+function imagemCliente(cliente, reacao = 'neutra') {
+  const arquivoReacao = reacao !== 'neutra' ? cliente.reacoes?.[reacao] : null;
+  return `assets/images/${arquivoReacao || cliente.imagem || `${cliente.id}.png`}`;
+}
+
+function precarregarReacoesCliente(cliente) {
+  Object.values(cliente.reacoes || {}).forEach(arquivo => {
+    const imagem = new Image();
+    imagem.src = `assets/images/${arquivo}`;
+  });
+}
+
+function mostrarReacaoCliente(reacao = 'neutra', animar = true) {
+  const cliente = estado.clienteAtual;
+  const retrato = document.getElementById('cliente-retrato');
+  if (!cliente || !retrato) return;
+  retrato.src = imagemCliente(cliente, reacao);
+  retrato.dataset.reacao = reacao;
+  retrato.alt = reacao === 'positiva'
+    ? `${cliente.nome} reagindo com satisfação`
+    : reacao === 'negativa'
+      ? `${cliente.nome} reagindo com descontentamento`
+      : `Retrato de ${cliente.nome}`;
+  retrato.classList.remove('reacao-ativa');
+  if (animar) {
+    void retrato.offsetWidth;
+    retrato.classList.add('reacao-ativa');
+  }
+}
+
 function personalizarTexto(texto = '') {
   const feminino = estado.sexoVendedor === 'feminino';
   return texto
@@ -234,8 +264,8 @@ function mostrarEscritorio() {
     estado.primeiraEntradaEscritorio = false;
   } else {
     sprite.style.transition = 'none';
-    sprite.style.transform = 'none';
-    sprite.style.left = '3%';
+    sprite.style.transform = 'translateX(-50%)';
+    sprite.style.left = '50%';
     sprite.src = imagemVendedor('parado');
   }
   renderizarMarcadores();
@@ -315,6 +345,7 @@ function renderizarMarcadores() {
 function irParaAtendimento(indice, momentoInadequado = false) {
   const vendedor = document.getElementById('vendedor-sprite');
   const cliente = clientes[indice];
+  precarregarReacoesCliente(cliente);
   estado.momentoInadequado = momentoInadequado;
   vendedor.src = framesAndandoAtuais()[0];
   vendedor.style.transform = 'translateX(-50%)';
@@ -342,9 +373,7 @@ function iniciarAtendimento(cliente) {
     estado.satisfacao = Math.max(0, estado.satisfacao - 18);
     estado.erros += 1;
   }
-  const retrato = document.getElementById('cliente-retrato');
-  retrato.src = `assets/images/${cliente.id}.png`;
-  retrato.alt = `Retrato de ${cliente.nome}`;
+  mostrarReacaoCliente('neutra', false);
   document.getElementById('vendedor-dialogo').src = imagemVendedor('parado');
   document.getElementById('nome-falante').textContent = cliente.nome.toUpperCase();
   document.getElementById('feedback-decisao').textContent = estado.momentoInadequado
@@ -363,6 +392,7 @@ function renderizarNo() {
   if (!no) return finalizarAtendimento();
   const balaoVendedor = document.getElementById('balao-vendedor');
   balaoVendedor.hidden = true;
+  mostrarReacaoCliente('neutra', false);
   document.getElementById('vendedor-dialogo').src = imagemVendedor('parado');
   document.getElementById('nome-falante').textContent = estado.clienteAtual.nome.toUpperCase();
   atualizarBarraSatisfacao();
@@ -416,6 +446,12 @@ function escolherOpcao(opcao, botao) {
   else if (opcao.categoria === 'pergunta' || opcao.categoria === 'necessidade') vendedor.src = imagemVendedor('pensando');
   else if (pontos >= 10) vendedor.src = imagemVendedor('feliz');
   else vendedor.src = imagemVendedor('falando');
+  const reacaoCliente = opcao.qualidade === 'excelente'
+    ? 'positiva'
+    : opcao.qualidade === 'ruim' || opcao.qualidade === 'muitoRuim'
+      ? 'negativa'
+      : 'neutra';
+  mostrarReacaoCliente(reacaoCliente);
   document.getElementById('feedback-decisao').textContent = opcao.feedback || '';
   atualizarBarraSatisfacao();
   document.getElementById('pontos-dialogo').textContent = estado.pontuacaoAtendimento;
@@ -551,7 +587,7 @@ function iniciarCutscene(tipo) {
   const container = document.getElementById('cutscene-clientes');
   container.innerHTML = clientes.map((cliente, indice) =>
     '<div class="cutscene-cliente" style="--atraso: ' + (indice * 90) + 'ms">' +
-      '<img src="assets/images/' + cliente.id + '.png" alt="' + cliente.nome + '">' +
+      '<img src="' + imagemCliente(cliente) + '" alt="' + cliente.nome + '">' +
       '<span>' + cliente.nome + '</span>' +
     '</div>'
   ).join('');
@@ -702,9 +738,8 @@ function continuarPartidaSalva() {
 
 function restaurarAtendimento() {
   const cliente = estado.clienteAtual;
-  const retrato = document.getElementById('cliente-retrato');
-  retrato.src = `assets/images/${cliente.id}.png`;
-  retrato.alt = `Retrato de ${cliente.nome}`;
+  precarregarReacoesCliente(cliente);
+  mostrarReacaoCliente('neutra', false);
   document.getElementById('vendedor-dialogo').src = imagemVendedor('parado');
   document.getElementById('nome-falante').textContent = cliente.nome.toUpperCase();
   document.getElementById('feedback-decisao').textContent = 'PARTIDA RESTAURADA · Continue de onde parou.';
