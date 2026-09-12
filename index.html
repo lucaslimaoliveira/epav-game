@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#12304a">
   <title>Fechando Negócio — EPAV</title>
-  <link rel="stylesheet" href="css/style.css?v=20260912-4">
+  <link rel="stylesheet" href="css/style.css?v=20260912-5">
 </head>
 <body>
   <main id="jogo">
@@ -63,7 +63,7 @@
       <div id="cenario-escritorio">
         <header class="hud-escritorio">
           <div class="hud-identidade"><small id="cargo-vendedor-hud">VENDEDOR</small><strong id="nome-vendedor-hud">Kevin</strong></div>
-          <div><small>CLIENTES</small><strong id="progresso-escritorio">0/5</strong></div>
+          <div class="hud-progresso"><small id="rotulo-progresso-escritorio">CLIENTE 1/5</small><strong id="progresso-escritorio">0/5</strong><span class="trilho-progresso"><span id="barra-progresso-escritorio"></span></span></div>
           <div><small>PONTOS</small><strong id="pontos-escritorio">0000</strong></div>
         </header>
         <div class="dica-observacao"><span>!</span> Observe o contexto antes de abordar.</div>
@@ -80,8 +80,14 @@
             <span id="emoji-satisfacao">😐</span>
             <div><small>SATISFAÇÃO</small><div id="barra-satisfacao"><div id="barra-satisfacao-preenchimento"></div></div></div>
           </div>
+          <div class="progresso-dialogo"><small id="progresso-dialogo">CLIENTE 1/5</small><span class="trilho-progresso"><span id="barra-progresso-dialogo"></span></span></div>
           <div class="pontos-dialogo"><small>PONTOS</small><strong id="pontos-dialogo">0</strong></div>
         </header>
+        <div id="estado-conversa" class="estado-conversa neutro" aria-live="polite"><span>●</span> CLIENTE NEUTRO</div>
+        <aside id="memoria-cliente" class="memoria-cliente" aria-live="polite">
+          <small>FICHA DE ESCUTA</small>
+          <div id="fatos-descobertos"><span class="fato-vazio">Escute para descobrir necessidades.</span></div>
+        </aside>
         <div class="palco-personagens">
           <img id="vendedor-dialogo" src="assets/images/vendedor-parado.png" alt="Vendedor EPAV">
           <img id="cliente-retrato" src="" alt="Cliente">
@@ -95,7 +101,9 @@
             <span id="nome-vendedor-fala" class="etiqueta-falante etiqueta-vendedor">VENDEDOR</span>
             <p id="texto-vendedor-fala"></p>
           </div>
-          <p id="feedback-decisao" class="feedback-decisao" aria-live="polite"></p>
+          <div id="feedback-decisao" class="feedback-decisao" aria-live="polite" hidden>
+            <strong id="feedback-pontos"></strong><span id="feedback-texto"></span>
+          </div>
           <div id="opcoes-resposta"></div>
           <p class="dica-teclado" aria-label="Atalhos do teclado">⌨ Escolha com A, B, C… ou 1, 2, 3… · Use as setas para navegar</p>
         </div>
@@ -138,6 +146,10 @@
           <div><small>SATISFAÇÃO</small><strong id="satisfacao-final">0%</strong></div>
           <div><small>TRATAMENTO DE OBJEÇÕES</small><strong id="objecoes-final">0%</strong></div>
         </div>
+        <div class="avaliacao-vendedor">
+          <p><small>SEU PONTO FORTE</small><strong id="ponto-forte-final">Escuta e identificação das necessidades.</strong></p>
+          <p><small>PARA MELHORAR</small><strong id="melhoria-final">Tratamento de objeções relacionadas a preço.</strong></p>
+        </div>
         <p id="pontuacao-final"></p>
         <button class="botao primario" onclick="abrirPersonalizacao()">Jogar novamente</button>
         <button class="botao secundario" onclick="mostrarTela('tela-menu')">Menu</button>
@@ -168,7 +180,7 @@
     </div>
   </div>
 
-  <script src="js/clientsData.js?v=20260912-3"></script>
-  <script src="js/game.js?v=20260912-3"></script>
+  <script src="js/clientsData.js?v=20260912-5"></script>
+  <script src="js/game.js?v=20260912-5"></script>
 </body>
 </html>

@@ -15,19 +15,144 @@ const estado = {
   objecoesRespondidas: 0,
   primeiraEntradaEscritorio: true,
   clientesLiberados: new Set(),
+  clientesObservados: new Set(),
   temporizadores: new Map(),
   momentoInadequado: false,
   bonusAtendimento: 0,
+  fatosDescobertos: [],
+  ultimaQualidade: 'neutra',
+  desempenhoCategorias: {},
+  clienteRecemLiberado: null,
   etapa: 'menu'
 };
 
-const CHAVE_PROGRESSO = 'progressoEpavV3';
+const CHAVE_PROGRESSO = 'progressoEpavV4';
+const CHAVE_PROGRESSO_ANTIGA = 'progressoEpavV3';
 const CHAVE_PERFIL = 'perfilVendedorEpav';
 let temporizadoresCutscene = [];
 let temporizadorDigitacao = null;
 let elementoDigitacao = null;
 let concluirDigitacaoAtual = null;
 let temporizadorAvancoDialogo = null;
+
+const nomesCategorias = {
+  observacao: 'Leitura do contexto',
+  abordagem: 'Abordagem sem pressão',
+  pergunta: 'Perguntas de descoberta',
+  necessidade: 'Escuta das necessidades',
+  objecao: 'Tratamento de objeções',
+  oferta: 'Recomendação personalizada',
+  fechamento: 'Fechamento consultivo'
+};
+
+function nivelReceptividade() {
+  if (estado.ultimaQualidade === 'excelente') return 'receptivo';
+  if (estado.ultimaQualidade === 'ruim' || estado.ultimaQualidade === 'muitoRuim') return 'fechado';
+  if (estado.satisfacao >= 65) return 'receptivo';
+  if (estado.satisfacao < 38) return 'fechado';
+  return 'cauteloso';
+}
+
+function registrarDescoberta(descoberta) {
+  if (!descoberta || estado.fatosDescobertos.some(fato => fato.chave === descoberta.chave)) return;
+  estado.fatosDescobertos.push({ ...descoberta });
+  atualizarFichaEscuta(true);
+}
+
+function atualizarFichaEscuta(animar = false) {
+  const container = document.getElementById('fatos-descobertos');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!estado.fatosDescobertos.length) {
+    container.innerHTML = '<span class="fato-vazio">Escute para descobrir necessidades.</span>';
+    return;
+  }
+  estado.fatosDescobertos.forEach((fato, indice) => {
+    const item = document.createElement('span');
+    item.className = `fato-descoberto${animar && indice === estado.fatosDescobertos.length - 1 ? ' novo' : ''}`;
+    item.textContent = `✓ ${fato.rotulo}`;
+    container.appendChild(item);
+  });
+}
+
+function atualizarEstadoConversa() {
+  const elemento = document.getElementById('estado-conversa');
+  if (!elemento) return;
+  const nivel = nivelReceptividade();
+  const textos = { receptivo: 'CLIENTE RECEPTIVO', cauteloso: 'CLIENTE CAUTELOSO', fechado: 'CLIENTE FECHADO' };
+  elemento.className = `estado-conversa ${nivel}`;
+  elemento.innerHTML = `<span>●</span> ${textos[nivel]}`;
+}
+
+function temFato(chave) {
+  return estado.fatosDescobertos.some(fato => fato.chave === chave);
+}
+
+function prepararNo(no) {
+  registrarDescoberta(no.descoberta);
+  const retornoAtivo = no.retorno && temFato(no.retorno.chave);
+  let texto = no.texto;
+  if (estado.ultimaQualidade === 'ruim') {
+    texto = `${estado.clienteAtual.nome} fica mais reservado e responde com cautela.\n\n${texto}`;
+  } else if (estado.ultimaQualidade === 'excelente') {
+    texto = `${estado.clienteAtual.nome} demonstra mais confiança e acrescenta um detalhe.\n\n${texto}`;
+  }
+  if (retornoAtivo) texto += `\n\n${estado.clienteAtual.nome.toUpperCase()}: ${no.retorno.texto}`;
+
+  const opcoes = no.opcoes.map(opcao => ({ ...opcao }));
+  if (retornoAtivo) {
+    const excelente = opcoes.find(opcao => opcao.qualidade === 'excelente');
+    if (excelente) {
+      excelente.texto = no.retorno.opcaoExcelente;
+      excelente.feedback = no.retorno.feedback;
+      excelente.usouMemoria = true;
+    }
+  }
+  if (nivelReceptividade() === 'fechado') {
+    const excelente = opcoes.find(opcao => opcao.qualidade === 'excelente');
+    if (excelente) excelente.texto = `Quero retomar com cuidado. ${excelente.texto}`;
+    const fraca = [...opcoes].reverse().find(opcao => opcao.qualidade === 'ruim');
+    if (fraca) {
+      fraca.texto = 'Posso voltar um passo, ouvir melhor e só então continuar.';
+      fraca.qualidade = 'boa';
+      fraca.pontos = 5;
+      fraca.correta = false;
+      fraca.efeitoSatisfacao = 5;
+      fraca.feedback = 'Você percebeu a perda de confiança e abriu espaço para recuperar a conversa.';
+      fraca.resposta = 'Tudo bem. Pode continuar, mas quero que você considere o que eu disser.';
+    }
+  }
+  return { texto, opcoes };
+}
+
+function registrarDesempenho(opcao, pontos) {
+  if (!opcao.categoria) return;
+  const atual = estado.desempenhoCategorias[opcao.categoria] || { pontos: 0, maximo: 0, respostas: 0, acertos: 0 };
+  atual.pontos += Math.max(0, pontos);
+  atual.maximo += 10;
+  atual.respostas += 1;
+  if (opcao.correta) atual.acertos += 1;
+  estado.desempenhoCategorias[opcao.categoria] = atual;
+}
+
+function tocarSomFeedback(positivo) {
+  try {
+    const ContextoAudio = window.AudioContext || window.webkitAudioContext;
+    if (!ContextoAudio) return;
+    const audio = new ContextoAudio();
+    const oscilador = audio.createOscillator();
+    const ganho = audio.createGain();
+    oscilador.type = positivo ? 'sine' : 'triangle';
+    oscilador.frequency.setValueAtTime(positivo ? 520 : 210, audio.currentTime);
+    if (positivo) oscilador.frequency.exponentialRampToValueAtTime(760, audio.currentTime + .12);
+    ganho.gain.setValueAtTime(.045, audio.currentTime);
+    ganho.gain.exponentialRampToValueAtTime(.001, audio.currentTime + .18);
+    oscilador.connect(ganho).connect(audio.destination);
+    oscilador.start();
+    oscilador.stop(audio.currentTime + .18);
+    oscilador.onended = () => audio.close();
+  } catch { /* O jogo continua normalmente quando áudio não estiver disponível. */ }
+}
 
 const tabelaPontuacao = {
   observacao:  { excelente: 100, boa: 60, neutra: 0, ruim: -100, muitoRuim: -200 },
@@ -237,9 +362,14 @@ function iniciarJogo() {
     objecoesRespondidas: 0,
     primeiraEntradaEscritorio: true,
     clientesLiberados: new Set(),
+    clientesObservados: new Set(),
     temporizadores: new Map(),
     momentoInadequado: false,
     bonusAtendimento: 0,
+    fatosDescobertos: [],
+    ultimaQualidade: 'neutra',
+    desempenhoCategorias: {},
+    clienteRecemLiberado: null,
     etapa: 'escritorio'
   });
   atualizarIdentidadeVendedor();
@@ -272,6 +402,23 @@ function mostrarEscritorio() {
   salvarProgresso();
 }
 
+function atualizarProgressoMissao(emAtendimento = false) {
+  const total = clientes.length;
+  const atual = Math.min(estado.indiceClienteAtual + 1, total);
+  const concluidos = Math.min(estado.indiceClienteAtual, total);
+  const percentual = ((emAtendimento ? atual : concluidos) / total) * 100;
+  const rotuloEscritorio = document.getElementById('rotulo-progresso-escritorio');
+  const progressoEscritorio = document.getElementById('progresso-escritorio');
+  const barraEscritorio = document.getElementById('barra-progresso-escritorio');
+  const progressoDialogo = document.getElementById('progresso-dialogo');
+  const barraDialogo = document.getElementById('barra-progresso-dialogo');
+  if (rotuloEscritorio) rotuloEscritorio.textContent = `CLIENTE ${atual}/${total}`;
+  if (progressoEscritorio) progressoEscritorio.textContent = `${concluidos}/${total}`;
+  if (barraEscritorio) barraEscritorio.style.width = `${(concluidos / total) * 100}%`;
+  if (progressoDialogo) progressoDialogo.textContent = `CLIENTE ${atual}/${total}`;
+  if (barraDialogo) barraDialogo.style.width = `${percentual}%`;
+}
+
 function animarChegada() {
   const sprite = document.getElementById('vendedor-sprite');
   const framesAndando = framesAndandoAtuais();
@@ -295,7 +442,7 @@ function animarChegada() {
 
 function renderizarMarcadores() {
   atualizarIdentidadeVendedor();
-  document.getElementById('progresso-escritorio').textContent = `${estado.indiceClienteAtual}/${clientes.length}`;
+  atualizarProgressoMissao(false);
   document.getElementById('pontos-escritorio').textContent = String(estado.pontuacaoTotal).padStart(4, '0');
   const container = document.getElementById('marcadores-clientes');
   container.innerHTML = '';
@@ -307,33 +454,43 @@ function renderizarMarcadores() {
     marcador.style.top = `${cliente.y}%`;
     marcador.tabIndex = 0;
     marcador.setAttribute('aria-label', `${cliente.nome}, ${cliente.status}`);
+    marcador.dataset.situacao = cliente.situacao || 'livre';
     const popup = document.createElement('div');
     popup.className = 'popup-cliente';
+    const observado = estado.clientesObservados.has(cliente.id);
+    const rotuloContexto = cliente.rotuloSituacao || (cliente.tempoOcupadoInicial ? 'OCUPADO' : 'DISPONÍVEL');
 
     if (indice < estado.indiceClienteAtual) {
       marcador.classList.add('concluido');
       popup.innerHTML = `<span class="status">CONCLUÍDO</span><h4>${cliente.nome}</h4><p>Atendimento finalizado.</p>`;
     } else if (indice > estado.indiceClienteAtual) {
       marcador.classList.add('bloqueado');
-      popup.innerHTML = `<span class="status">AGUARDE</span><h4>${cliente.nome}</h4><p>${cliente.status}. Termine o atendimento atual primeiro.</p>`;
+      popup.innerHTML = `<span class="status contexto-${cliente.situacao || 'livre'}">${rotuloContexto}</span><h4>${cliente.nome}</h4><p>${cliente.status}. Observe o ambiente agora; o atendimento será liberado na ordem da missão.</p>`;
     } else {
       const ocupado = cliente.tempoOcupadoInicial && !estado.clientesLiberados.has(cliente.id);
       marcador.classList.add('atual');
+      if (observado) marcador.classList.add('observado');
+      if (estado.clienteRecemLiberado === cliente.id) marcador.classList.add('recem-liberado');
       if (ocupado) {
         marcador.classList.add('ocupado');
-        popup.innerHTML = `<span class="status">OCUPADO</span><h4>${cliente.nome}</h4><p>${cliente.motivoOcupado}</p><button>Interromper mesmo assim</button>`;
-        popup.querySelector('button').onclick = () => irParaAtendimento(indice, true);
+        popup.innerHTML = `<span class="status contexto-${cliente.situacao || 'ocupado'}">${rotuloContexto}</span><h4>${cliente.nome}</h4><p>${cliente.motivoOcupado}</p><div class="acoes-contexto"><button class="observar">${observado ? '✓ Contexto observado' : 'Observar e aguardar'}</button><button class="interromper">Interromper mesmo assim</button></div>`;
+        popup.querySelector('.observar').onclick = () => observarCliente(cliente.id);
+        popup.querySelector('.interromper').onclick = () => irParaAtendimento(indice, true);
         if (!estado.temporizadores.has(cliente.id)) {
           const timer = setTimeout(() => {
             estado.clientesLiberados.add(cliente.id);
+            estado.clienteRecemLiberado = cliente.id;
             estado.temporizadores.delete(cliente.id);
             salvarProgresso();
             renderizarMarcadores();
           }, cliente.tempoOcupadoInicial);
           estado.temporizadores.set(cliente.id, timer);
         }
+      } else if (!observado) {
+        popup.innerHTML = `<span class="status contexto-livre">${rotuloContexto}</span><h4>${cliente.nome}</h4><p><strong>${cliente.area}</strong><br>${cliente.status}. Observe antes de iniciar.</p><button class="observar">Observar contexto</button>`;
+        popup.querySelector('.observar').onclick = () => observarCliente(cliente.id);
       } else {
-        popup.innerHTML = `<span class="status">DISPONÍVEL</span><h4>${cliente.nome}</h4><p><strong>${cliente.area}</strong><br>${cliente.perfil}</p><button>Atender agora</button>`;
+        popup.innerHTML = `<span class="status contexto-livre">DISPONÍVEL · OBSERVADO</span><h4>${cliente.nome}</h4><p><strong>${cliente.area}</strong><br>${cliente.perfil}</p><button>Atender agora</button>`;
         popup.querySelector('button').onclick = () => irParaAtendimento(indice, false);
       }
     }
@@ -342,9 +499,17 @@ function renderizarMarcadores() {
   });
 }
 
+function observarCliente(clienteId) {
+  estado.clientesObservados.add(clienteId);
+  estado.clienteRecemLiberado = null;
+  salvarProgresso();
+  renderizarMarcadores();
+}
+
 function irParaAtendimento(indice, momentoInadequado = false) {
   const vendedor = document.getElementById('vendedor-sprite');
   const cliente = clientes[indice];
+  if (!momentoInadequado && !estado.clientesObservados.has(cliente.id)) return observarCliente(cliente.id);
   precarregarReacoesCliente(cliente);
   estado.momentoInadequado = momentoInadequado;
   vendedor.src = framesAndandoAtuais()[0];
@@ -367,6 +532,8 @@ function iniciarAtendimento(cliente) {
   estado.satisfacao = cliente.satisfacaoInicial;
   estado.pontuacaoAtendimento = 0;
   estado.bonusAtendimento = 0;
+  estado.fatosDescobertos = [];
+  estado.ultimaQualidade = 'neutra';
   estado.noAtual = cliente.noInicial;
   estado.etapa = 'dialogo';
   if (estado.momentoInadequado) {
@@ -376,8 +543,13 @@ function iniciarAtendimento(cliente) {
   mostrarReacaoCliente('neutra', false);
   document.getElementById('vendedor-dialogo').src = imagemVendedor('parado');
   document.getElementById('nome-falante').textContent = cliente.nome.toUpperCase();
-  document.getElementById('feedback-decisao').textContent = estado.momentoInadequado
-    ? 'MOMENTO INADEQUADO — Observe o contexto antes de abordar.' : '';
+  atualizarFichaEscuta();
+  atualizarEstadoConversa();
+  atualizarProgressoMissao(true);
+  exibirFeedbackDecisao(
+    estado.momentoInadequado ? -10 : null,
+    estado.momentoInadequado ? 'Você interrompeu o cliente antes do momento adequado. Ele começa a conversa menos receptivo.' : ''
+  );
   mostrarTela('tela-dialogo');
   salvarProgresso();
   renderizarNo();
@@ -390,17 +562,20 @@ function renderizarNo() {
   clearTimeout(temporizadorAvancoDialogo);
   const no = estado.clienteAtual.dialogo[estado.noAtual];
   if (!no) return finalizarAtendimento();
+  const noPreparado = prepararNo(no);
   const balaoVendedor = document.getElementById('balao-vendedor');
   balaoVendedor.hidden = true;
-  mostrarReacaoCliente('neutra', false);
+  mostrarReacaoCliente(nivelReceptividade() === 'receptivo' ? 'positiva' : nivelReceptividade() === 'fechado' ? 'negativa' : 'neutra', false);
   document.getElementById('vendedor-dialogo').src = imagemVendedor('parado');
   document.getElementById('nome-falante').textContent = estado.clienteAtual.nome.toUpperCase();
   atualizarBarraSatisfacao();
+  atualizarEstadoConversa();
+  atualizarFichaEscuta();
   document.getElementById('pontos-dialogo').textContent = estado.pontuacaoAtendimento;
   const container = document.getElementById('opcoes-resposta');
   container.innerHTML = '';
   container.hidden = true;
-  digitarTexto(document.getElementById('texto-cliente'), no.texto, () => renderizarOpcoes(no));
+  digitarTexto(document.getElementById('texto-cliente'), noPreparado.texto, () => renderizarOpcoes({ ...no, opcoes: noPreparado.opcoes }));
 }
 
 function renderizarOpcoes(no) {
@@ -440,7 +615,9 @@ function escolherOpcao(opcao, botao) {
       estado.objecoesRespondidas += 1;
       if (opcao.correta) estado.objecoesCorretas += 1;
     }
+    registrarDesempenho(opcao, pontos);
   }
+  estado.ultimaQualidade = opcao.qualidade;
   const vendedor = document.getElementById('vendedor-dialogo');
   if (pontos < 0) vendedor.src = imagemVendedor('frustrado');
   else if (opcao.categoria === 'pergunta' || opcao.categoria === 'necessidade') vendedor.src = imagemVendedor('pensando');
@@ -452,8 +629,10 @@ function escolherOpcao(opcao, botao) {
       ? 'negativa'
       : 'neutra';
   mostrarReacaoCliente(reacaoCliente);
-  document.getElementById('feedback-decisao').textContent = opcao.feedback || '';
+  exibirFeedbackDecisao(pontos, opcao.feedback || 'Observe como essa escolha alterou a confiança do cliente.');
+  tocarSomFeedback(pontos > 0);
   atualizarBarraSatisfacao();
+  atualizarEstadoConversa();
   document.getElementById('pontos-dialogo').textContent = estado.pontuacaoAtendimento;
   estado.noAtual = typeof opcao.proximoNo === 'function' ? opcao.proximoNo(estado) : opcao.proximoNo;
   salvarProgresso();
@@ -472,6 +651,27 @@ function escolherOpcao(opcao, botao) {
       });
     }, 600);
   });
+}
+
+function exibirFeedbackDecisao(pontos, texto) {
+  const feedback = document.getElementById('feedback-decisao');
+  const pontosElemento = document.getElementById('feedback-pontos');
+  const textoElemento = document.getElementById('feedback-texto');
+  if (!feedback || !pontosElemento || !textoElemento) return;
+  if (pontos === null || pontos === undefined || !texto) {
+    feedback.hidden = true;
+    return;
+  }
+  const positivo = pontos > 0;
+  const neutro = pontos === 0;
+  feedback.hidden = false;
+  feedback.className = `feedback-decisao ${positivo ? 'positivo' : neutro ? 'neutro' : 'negativo'}`;
+  pontosElemento.textContent = `${pontos > 0 ? '+' : ''}${pontos} PONTOS`;
+  textoElemento.textContent = texto;
+  feedback.animate(
+    [{ opacity: 0, transform: 'translateY(7px)' }, { opacity: 1, transform: 'translateY(0)' }],
+    { duration: 260 }
+  );
 }
 
 function mostrarPontosFlutuantes(valor, referencia) {
@@ -511,8 +711,15 @@ function mostrarResultadoAtendimento() {
   const titulo = estado.satisfacao >= 80 ? 'Conexão excelente!' : estado.satisfacao >= 60 ? 'Boa conversa!' : 'Há espaço para melhorar';
   document.getElementById('titulo-resultado').textContent = titulo;
   document.getElementById('resumo-atendimento').textContent = `${estado.clienteAtual.nome}: ${estado.pontuacaoAtendimento} de ${estado.clienteAtual.decisoes * 10} pontos · satisfação ${estado.satisfacao}% ${emojiSatisfacao(estado.satisfacao)}`;
-  document.getElementById('licao-atendimento').textContent = estado.clienteAtual.licao;
+  const fatos = estado.fatosDescobertos.map(fato => fato.rotulo).join(' · ');
+  document.getElementById('licao-atendimento').textContent = fatos
+    ? `${estado.clienteAtual.licao} Ficha de escuta: ${fatos}.`
+    : estado.clienteAtual.licao;
   mostrarTela('tela-resultado');
+  document.querySelector('.selo-resultado')?.animate(
+    [{ transform: 'scale(.4) rotate(-14deg)' }, { transform: 'scale(1.15) rotate(4deg)' }, { transform: 'scale(1)' }],
+    { duration: 620, easing: 'cubic-bezier(.2,.9,.25,1)' }
+  );
 }
 
 function continuarAposResultado() {
@@ -540,6 +747,27 @@ function mensagemClassificacao(pontuacao) {
   return 'Você começou a entender como funciona um bom atendimento. Agora é hora de praticar mais.';
 }
 
+function avaliarCompetencias() {
+  const entradas = Object.entries(estado.desempenhoCategorias)
+    .filter(([, dados]) => dados.respostas > 0)
+    .map(([categoria, dados]) => ({
+      categoria,
+      percentual: dados.maximo ? Math.round((dados.pontos / dados.maximo) * 100) : 0
+    }));
+  if (!entradas.length) {
+    return { forte: 'Escuta e identificação das necessidades.', melhoria: 'Pratique mais atendimentos para receber uma análise detalhada.' };
+  }
+  entradas.sort((a, b) => b.percentual - a.percentual);
+  const melhor = entradas[0];
+  const pior = entradas[entradas.length - 1];
+  return {
+    forte: `${nomesCategorias[melhor.categoria] || melhor.categoria} · ${melhor.percentual}% de aproveitamento.`,
+    melhoria: pior.percentual >= 100
+      ? 'Nenhum ponto crítico. Mantenha a consistência em todos os critérios.'
+      : `${nomesCategorias[pior.categoria] || pior.categoria} · ${pior.percentual}% de aproveitamento.`
+  };
+}
+
 function finalizarJogo() {
   const classificacao = calcularClassificacao(estado.pontuacaoTotal);
   const totalDecisoes = clientes.reduce((total, cliente) => total + cliente.decisoes, 0);
@@ -552,6 +780,9 @@ function finalizarJogo() {
   document.getElementById('decisoes-final').textContent = `${estado.acertos}/${totalDecisoes}`;
   document.getElementById('satisfacao-final').textContent = `${satisfacaoMedia}%`;
   document.getElementById('objecoes-final').textContent = `${desempenhoObjecoes}%`;
+  const avaliacao = avaliarCompetencias();
+  document.getElementById('ponto-forte-final').textContent = avaliacao.forte;
+  document.getElementById('melhoria-final').textContent = avaliacao.melhoria;
   document.getElementById('pontuacao-final').textContent = `${estado.pontuacaoTotal}/400 pontos · ${estado.erros} decisões a revisar`;
   document.getElementById('vendedor-final').src = estado.pontuacaoTotal >= 241
     ? imagemVendedor('comemorando') : imagemVendedor('feliz');
@@ -645,8 +876,9 @@ function salvarTentativa(classificacao) {
   const historico = lerHistorico();
   historico.push({
     data: new Date().toISOString(), pontuacao: estado.pontuacaoTotal, classificacao,
-    clientes: clientes.length, erros: estado.erros, acertos: estado.acertos, maximo: 400, versao: 3,
-    nomeVendedor: estado.nomeVendedor, sexoVendedor: estado.sexoVendedor
+    clientes: clientes.length, erros: estado.erros, acertos: estado.acertos, maximo: 400, versao: 4,
+    nomeVendedor: estado.nomeVendedor, sexoVendedor: estado.sexoVendedor,
+    desempenhoCategorias: estado.desempenhoCategorias
   });
   localStorage.setItem('historicoEpav', JSON.stringify(historico));
 }
@@ -659,7 +891,7 @@ function lerHistorico() {
 function salvarProgresso() {
   if (estado.etapa === 'menu' || estado.indiceClienteAtual >= clientes.length) return;
   const progresso = {
-    versao: 3,
+    versao: 4,
     salvoEm: new Date().toISOString(),
     etapa: estado.etapa,
     nomeVendedor: estado.nomeVendedor,
@@ -678,17 +910,23 @@ function salvarProgresso() {
     objecoesRespondidas: estado.objecoesRespondidas,
     primeiraEntradaEscritorio: estado.primeiraEntradaEscritorio,
     clientesLiberados: [...estado.clientesLiberados],
+    clientesObservados: [...estado.clientesObservados],
     momentoInadequado: estado.momentoInadequado,
-    bonusAtendimento: estado.bonusAtendimento
+    bonusAtendimento: estado.bonusAtendimento,
+    fatosDescobertos: estado.fatosDescobertos,
+    ultimaQualidade: estado.ultimaQualidade,
+    desempenhoCategorias: estado.desempenhoCategorias,
+    clienteRecemLiberado: estado.clienteRecemLiberado
   };
   localStorage.setItem(CHAVE_PROGRESSO, JSON.stringify(progresso));
+  localStorage.removeItem(CHAVE_PROGRESSO_ANTIGA);
 }
 
 function lerProgresso() {
   try {
-    const progresso = JSON.parse(localStorage.getItem(CHAVE_PROGRESSO) || 'null');
+    const progresso = JSON.parse(localStorage.getItem(CHAVE_PROGRESSO) || localStorage.getItem(CHAVE_PROGRESSO_ANTIGA) || 'null');
     const etapasValidas = ['escritorio', 'dialogo', 'resultado'];
-    if (!progresso || progresso.versao !== 3 || !etapasValidas.includes(progresso.etapa)) return null;
+    if (!progresso || ![3, 4].includes(progresso.versao) || !etapasValidas.includes(progresso.etapa)) return null;
     if (!Number.isInteger(progresso.indiceClienteAtual) || progresso.indiceClienteAtual < 0 || progresso.indiceClienteAtual >= clientes.length) return null;
     if (progresso.etapa !== 'escritorio' && !clientes.some(cliente => cliente.id === progresso.clienteId)) return null;
     return progresso;
@@ -724,9 +962,14 @@ function continuarPartidaSalva() {
     objecoesRespondidas: Number(progresso.objecoesRespondidas) || 0,
     primeiraEntradaEscritorio: false,
     clientesLiberados: new Set(Array.isArray(progresso.clientesLiberados) ? progresso.clientesLiberados : []),
+    clientesObservados: new Set(Array.isArray(progresso.clientesObservados) ? progresso.clientesObservados : []),
     temporizadores: new Map(),
     momentoInadequado: Boolean(progresso.momentoInadequado),
     bonusAtendimento: Number(progresso.bonusAtendimento) || 0,
+    fatosDescobertos: Array.isArray(progresso.fatosDescobertos) ? progresso.fatosDescobertos : [],
+    ultimaQualidade: progresso.ultimaQualidade || 'neutra',
+    desempenhoCategorias: progresso.desempenhoCategorias && typeof progresso.desempenhoCategorias === 'object' ? progresso.desempenhoCategorias : {},
+    clienteRecemLiberado: progresso.clienteRecemLiberado || null,
     etapa: progresso.etapa
   });
   atualizarIdentidadeVendedor();
@@ -742,7 +985,10 @@ function restaurarAtendimento() {
   mostrarReacaoCliente('neutra', false);
   document.getElementById('vendedor-dialogo').src = imagemVendedor('parado');
   document.getElementById('nome-falante').textContent = cliente.nome.toUpperCase();
-  document.getElementById('feedback-decisao').textContent = 'PARTIDA RESTAURADA · Continue de onde parou.';
+  atualizarFichaEscuta();
+  atualizarEstadoConversa();
+  atualizarProgressoMissao(true);
+  exibirFeedbackDecisao(0, 'Partida restaurada. Continue de onde parou.');
   mostrarTela('tela-dialogo');
   renderizarNo();
 }
