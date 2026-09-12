@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#12304a">
   <title>Fechando Negócio — EPAV</title>
-  <link rel="stylesheet" href="css/style.css?v=20260912-5">
+  <link rel="stylesheet" href="css/style.css?v=20260912-7">
 </head>
 <body>
   <main id="jogo">
@@ -80,7 +80,7 @@
             <span id="emoji-satisfacao">😐</span>
             <div><small>SATISFAÇÃO</small><div id="barra-satisfacao"><div id="barra-satisfacao-preenchimento"></div></div></div>
           </div>
-          <div class="progresso-dialogo"><small id="progresso-dialogo">CLIENTE 1/5</small><span class="trilho-progresso"><span id="barra-progresso-dialogo"></span></span></div>
+          <div class="progresso-dialogo"><small id="progresso-dialogo">ATENDIMENTO 1/5</small><strong id="fase-atendimento">Iniciando abordagem</strong><span class="trilho-progresso"><span id="barra-progresso-dialogo"></span></span></div>
           <div class="pontos-dialogo"><small>PONTOS</small><strong id="pontos-dialogo">0</strong></div>
         </header>
         <div id="estado-conversa" class="estado-conversa neutro" aria-live="polite"><span>●</span> CLIENTE NEUTRO</div>
@@ -88,6 +88,9 @@
           <small>FICHA DE ESCUTA</small>
           <div id="fatos-descobertos"><span class="fato-vazio">Escute para descobrir necessidades.</span></div>
         </aside>
+        <div id="insight-descoberta" class="insight-descoberta" role="status" hidden>
+          <span>💡</span><div><small>NECESSIDADE IDENTIFICADA</small><strong id="texto-insight-descoberta"></strong></div>
+        </div>
         <div class="palco-personagens">
           <img id="vendedor-dialogo" src="assets/images/vendedor-parado.png" alt="Vendedor EPAV">
           <img id="cliente-retrato" src="" alt="Cliente">
@@ -115,7 +118,12 @@
         <p class="sobretitulo">ATENDIMENTO CONCLUÍDO</p>
         <div class="selo-resultado">✓</div>
         <h2 id="titulo-resultado">Boa conversa!</h2>
-        <p id="resumo-atendimento"></p>
+        <strong id="pontos-atendimento" class="pontos-atendimento">+0 pontos</strong>
+        <div class="mini-resumo-atendimento">
+          <p><small>VOCÊ FOI BEM EM</small><strong id="forte-atendimento"></strong></p>
+          <p><small>CUIDADO NA PRÓXIMA</small><strong id="cuidado-atendimento"></strong></p>
+          <p><small>SATISFAÇÃO</small><strong id="resumo-atendimento"></strong></p>
+        </div>
         <div id="licao-atendimento" class="licao"></div>
         <button class="botao primario" onclick="continuarAposResultado()">Continuar ▶</button>
       </div>
@@ -142,7 +150,7 @@
         <p id="mensagem-final"></p>
         <div class="metricas-finais">
           <div><small>CLIENTES ATENDIDOS</small><strong id="clientes-final">5/5</strong></div>
-          <div><small>DECISÕES CORRETAS</small><strong id="decisoes-final">0/40</strong></div>
+          <div><small>QUALIDADE DAS DECISÕES</small><strong id="decisoes-final">0/40</strong></div>
           <div><small>SATISFAÇÃO</small><strong id="satisfacao-final">0%</strong></div>
           <div><small>TRATAMENTO DE OBJEÇÕES</small><strong id="objecoes-final">0%</strong></div>
         </div>
@@ -180,7 +188,7 @@
     </div>
   </div>
 
-  <script src="js/clientsData.js?v=20260912-5"></script>
-  <script src="js/game.js?v=20260912-5"></script>
+  <script src="js/clientsData.js?v=20260912-7"></script>
+  <script src="js/game.js?v=20260912-7"></script>
 </body>
 </html>

@@ -44,6 +44,9 @@ const feedbackPorCategoria = {
 };
 
 function feedbackDaOpcao(categoria, nivel) {
+  if (nivel === 'muitoRuim') {
+    return `${feedbackPorCategoria[categoria]?.ruim || feedbackPorCategoria.necessidade.ruim} A consequência foi especialmente forte.`;
+  }
   return feedbackPorCategoria[categoria]?.[nivel]
     || feedbackPorCategoria.necessidade[nivel]
     || 'Observe como sua resposta afetou a confiança do cliente.';
@@ -82,12 +85,14 @@ function criarNo(texto, escolhas, pontos, categoria, proximoNo, resposta = '', i
     texto,
     opcoes: escolhas.map((escolha, indice) => {
       const valor = pontos[indice];
-      const nivel = valor >= 10 ? 'excelente' : valor > 0 ? 'boa' : valor === 0 ? 'neutra' : 'ruim';
+      const nivel = valor >= 10 ? 'excelente' : valor > 0 ? 'boa' : valor === 0 ? 'neutra' : valor <= -10 ? 'muitoRuim' : 'ruim';
+      const pesos = { excelente: 2, boa: 1, neutra: 0, ruim: -1, muitoRuim: -2 };
       return {
         id: `${id}-o${indice + 1}`,
-        texto: nivel === 'ruim' && indice === escolhas.length - 1 ? alternativas[indice % alternativas.length] : escolha,
+        texto: ['ruim', 'muitoRuim'].includes(nivel) && indice === escolhas.length - 1 ? alternativas[indice % alternativas.length] : escolha,
         categoria,
         qualidade: nivel,
+        pesoQualidade: pesos[nivel],
         efeitoSatisfacao: valor >= 10 ? 6 : valor > 0 ? 3 : valor === 0 ? 0 : valor <= -10 ? -7 : -4,
         pontos: valor,
         correta: valor === 10,

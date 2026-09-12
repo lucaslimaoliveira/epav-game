@@ -22,18 +22,21 @@ const estado = {
   fatosDescobertos: [],
   ultimaQualidade: 'neutra',
   desempenhoCategorias: {},
+  desempenhoAtendimento: {},
+  saldoQualidade: 0,
   clienteRecemLiberado: null,
   etapa: 'menu'
 };
 
-const CHAVE_PROGRESSO = 'progressoEpavV4';
-const CHAVE_PROGRESSO_ANTIGA = 'progressoEpavV3';
+const CHAVE_PROGRESSO = 'progressoEpavV5';
+const CHAVES_PROGRESSO_ANTIGAS = ['progressoEpavV4', 'progressoEpavV3'];
 const CHAVE_PERFIL = 'perfilVendedorEpav';
 let temporizadoresCutscene = [];
 let temporizadorDigitacao = null;
 let elementoDigitacao = null;
 let concluirDigitacaoAtual = null;
 let temporizadorAvancoDialogo = null;
+let temporizadorInsight = null;
 
 const nomesCategorias = {
   observacao: 'Leitura do contexto',
@@ -43,6 +46,16 @@ const nomesCategorias = {
   objecao: 'Tratamento de objeções',
   oferta: 'Recomendação personalizada',
   fechamento: 'Fechamento consultivo'
+};
+
+const fasesConversa = {
+  observacao: 'Lendo o contexto',
+  abordagem: 'Iniciando a abordagem',
+  pergunta: 'Descobrindo a necessidade',
+  necessidade: 'Entendendo prioridades',
+  objecao: 'Tratando uma objeção',
+  oferta: 'Construindo a solução',
+  fechamento: 'Confirmando a decisão'
 };
 
 function nivelReceptividade() {
@@ -57,6 +70,23 @@ function registrarDescoberta(descoberta) {
   if (!descoberta || estado.fatosDescobertos.some(fato => fato.chave === descoberta.chave)) return;
   estado.fatosDescobertos.push({ ...descoberta });
   atualizarFichaEscuta(true);
+  mostrarInsightDescoberta(descoberta.rotulo);
+}
+
+function mostrarInsightDescoberta(texto) {
+  const insight = document.getElementById('insight-descoberta');
+  const rotulo = document.getElementById('texto-insight-descoberta');
+  if (!insight || !rotulo) return;
+  clearTimeout(temporizadorInsight);
+  rotulo.textContent = texto;
+  insight.hidden = false;
+  insight.classList.remove('ativo');
+  void insight.offsetWidth;
+  insight.classList.add('ativo');
+  temporizadorInsight = setTimeout(() => {
+    insight.classList.remove('ativo');
+    insight.hidden = true;
+  }, 2600);
 }
 
 function atualizarFichaEscuta(animar = false) {
@@ -115,6 +145,7 @@ function prepararNo(no) {
     if (fraca) {
       fraca.texto = 'Posso voltar um passo, ouvir melhor e só então continuar.';
       fraca.qualidade = 'boa';
+      fraca.pesoQualidade = 1;
       fraca.pontos = 5;
       fraca.correta = false;
       fraca.efeitoSatisfacao = 5;
@@ -133,6 +164,17 @@ function registrarDesempenho(opcao, pontos) {
   atual.respostas += 1;
   if (opcao.correta) atual.acertos += 1;
   estado.desempenhoCategorias[opcao.categoria] = atual;
+  const atendimento = estado.desempenhoAtendimento[opcao.categoria] || { pontos: 0, maximo: 0, respostas: 0, acertos: 0 };
+  atendimento.pontos += Math.max(0, pontos);
+  atendimento.maximo += 10;
+  atendimento.respostas += 1;
+  if (opcao.correta) atendimento.acertos += 1;
+  estado.desempenhoAtendimento[opcao.categoria] = atendimento;
+}
+
+function atualizarFaseAtendimento(categoria) {
+  const fase = document.getElementById('fase-atendimento');
+  if (fase) fase.textContent = fasesConversa[categoria] || 'Conduzindo a conversa';
 }
 
 function tocarSomFeedback(positivo) {
@@ -337,6 +379,9 @@ function mostrarTela(id) {
   if (id !== 'tela-dialogo') {
     cancelarDigitacao();
     clearTimeout(temporizadorAvancoDialogo);
+    clearTimeout(temporizadorInsight);
+    const insight = document.getElementById('insight-descoberta');
+    if (insight) insight.hidden = true;
   }
   document.querySelectorAll('.tela').forEach(tela => tela.classList.remove('ativa'));
   const destino = document.getElementById(id);
@@ -369,6 +414,8 @@ function iniciarJogo() {
     fatosDescobertos: [],
     ultimaQualidade: 'neutra',
     desempenhoCategorias: {},
+    desempenhoAtendimento: {},
+    saldoQualidade: 0,
     clienteRecemLiberado: null,
     etapa: 'escritorio'
   });
@@ -415,7 +462,7 @@ function atualizarProgressoMissao(emAtendimento = false) {
   if (rotuloEscritorio) rotuloEscritorio.textContent = `CLIENTE ${atual}/${total}`;
   if (progressoEscritorio) progressoEscritorio.textContent = `${concluidos}/${total}`;
   if (barraEscritorio) barraEscritorio.style.width = `${(concluidos / total) * 100}%`;
-  if (progressoDialogo) progressoDialogo.textContent = `CLIENTE ${atual}/${total}`;
+  if (progressoDialogo) progressoDialogo.textContent = `ATENDIMENTO ${atual}/${total}`;
   if (barraDialogo) barraDialogo.style.width = `${percentual}%`;
 }
 
@@ -534,6 +581,7 @@ function iniciarAtendimento(cliente) {
   estado.bonusAtendimento = 0;
   estado.fatosDescobertos = [];
   estado.ultimaQualidade = 'neutra';
+  estado.desempenhoAtendimento = {};
   estado.noAtual = cliente.noInicial;
   estado.etapa = 'dialogo';
   if (estado.momentoInadequado) {
@@ -563,6 +611,7 @@ function renderizarNo() {
   const no = estado.clienteAtual.dialogo[estado.noAtual];
   if (!no) return finalizarAtendimento();
   const noPreparado = prepararNo(no);
+  atualizarFaseAtendimento(no.opcoes[0]?.categoria);
   const balaoVendedor = document.getElementById('balao-vendedor');
   balaoVendedor.hidden = true;
   mostrarReacaoCliente(nivelReceptividade() === 'receptivo' ? 'positiva' : nivelReceptividade() === 'fechado' ? 'negativa' : 'neutra', false);
@@ -587,6 +636,8 @@ function renderizarOpcoes(no) {
     const numero = String(indice + 1);
     botao.dataset.letra = letra;
     botao.dataset.atalho = numero;
+    botao.dataset.qualidade = opcao.qualidade;
+    botao.dataset.pesoQualidade = String(opcao.pesoQualidade ?? 0);
     botao.title = `Atalho: ${letra} ou ${numero}`;
     botao.setAttribute('aria-keyshortcuts', `${letra} ${numero}`);
     botao.textContent = personalizarTexto(opcao.texto);
@@ -616,6 +667,9 @@ function escolherOpcao(opcao, botao) {
       if (opcao.correta) estado.objecoesCorretas += 1;
     }
     registrarDesempenho(opcao, pontos);
+    estado.saldoQualidade += Number.isFinite(opcao.pesoQualidade)
+      ? opcao.pesoQualidade
+      : ({ excelente: 2, boa: 1, neutra: 0, ruim: -1, muitoRuim: -2 }[opcao.qualidade] || 0);
   }
   estado.ultimaQualidade = opcao.qualidade;
   const vendedor = document.getElementById('vendedor-dialogo');
@@ -623,7 +677,7 @@ function escolherOpcao(opcao, botao) {
   else if (opcao.categoria === 'pergunta' || opcao.categoria === 'necessidade') vendedor.src = imagemVendedor('pensando');
   else if (pontos >= 10) vendedor.src = imagemVendedor('feliz');
   else vendedor.src = imagemVendedor('falando');
-  const reacaoCliente = opcao.qualidade === 'excelente'
+  const reacaoCliente = opcao.qualidade === 'excelente' || opcao.qualidade === 'boa'
     ? 'positiva'
     : opcao.qualidade === 'ruim' || opcao.qualidade === 'muitoRuim'
       ? 'negativa'
@@ -685,13 +739,25 @@ function mostrarPontosFlutuantes(valor, referencia) {
 
 function atualizarBarraSatisfacao() {
   const preenchimento = document.getElementById('barra-satisfacao-preenchimento');
+  const emoji = document.getElementById('emoji-satisfacao');
+  const novoEmoji = emojiSatisfacao(estado.satisfacao);
+  const mudou = emoji.textContent !== novoEmoji;
   preenchimento.style.width = `${estado.satisfacao}%`;
   preenchimento.style.background = estado.satisfacao >= 65 ? '#58b957' : estado.satisfacao >= 40 ? '#f2b84b' : '#cf4554';
-  document.getElementById('emoji-satisfacao').textContent = emojiSatisfacao(estado.satisfacao);
+  emoji.textContent = novoEmoji;
+  emoji.setAttribute('aria-label', `Satisfação ${estado.satisfacao} de 100`);
+  if (mudou) emoji.animate(
+    [{ transform: 'scale(.65) rotate(-8deg)' }, { transform: 'scale(1.28) rotate(5deg)' }, { transform: 'scale(1)' }],
+    { duration: 380, easing: 'cubic-bezier(.2,.9,.25,1)' }
+  );
 }
 
-function emojiSatisfacao(valor) {
-  if (valor >= 80) return '😊';
+function emojiSatisfacao(valor, reagirUltimaEscolha = true) {
+  if (reagirUltimaEscolha && estado.ultimaQualidade === 'muitoRuim') return '😠';
+  if (reagirUltimaEscolha && estado.ultimaQualidade === 'ruim') return '😕';
+  if (reagirUltimaEscolha && estado.ultimaQualidade === 'excelente') return valor >= 75 ? '😄' : '🙂';
+  if (reagirUltimaEscolha && estado.ultimaQualidade === 'boa') return valor >= 85 ? '😄' : '🙂';
+  if (valor >= 80) return '😄';
   if (valor >= 60) return '🙂';
   if (valor >= 40) return '😐';
   if (valor >= 20) return '😕';
@@ -709,8 +775,12 @@ function finalizarAtendimento() {
 
 function mostrarResultadoAtendimento() {
   const titulo = estado.satisfacao >= 80 ? 'Conexão excelente!' : estado.satisfacao >= 60 ? 'Boa conversa!' : 'Há espaço para melhorar';
+  const avaliacao = avaliarCompetencias(estado.desempenhoAtendimento);
   document.getElementById('titulo-resultado').textContent = titulo;
-  document.getElementById('resumo-atendimento').textContent = `${estado.clienteAtual.nome}: ${estado.pontuacaoAtendimento} de ${estado.clienteAtual.decisoes * 10} pontos · satisfação ${estado.satisfacao}% ${emojiSatisfacao(estado.satisfacao)}`;
+  document.getElementById('pontos-atendimento').textContent = `+${estado.pontuacaoAtendimento} pontos`;
+  document.getElementById('forte-atendimento').textContent = avaliacao.forte;
+  document.getElementById('cuidado-atendimento').textContent = avaliacao.melhoria;
+  document.getElementById('resumo-atendimento').textContent = `${estado.satisfacao}% ${emojiSatisfacao(estado.satisfacao, false)}`;
   const fatos = estado.fatosDescobertos.map(fato => fato.rotulo).join(' · ');
   document.getElementById('licao-atendimento').textContent = fatos
     ? `${estado.clienteAtual.licao} Ficha de escuta: ${fatos}.`
@@ -747,8 +817,8 @@ function mensagemClassificacao(pontuacao) {
   return 'Você começou a entender como funciona um bom atendimento. Agora é hora de praticar mais.';
 }
 
-function avaliarCompetencias() {
-  const entradas = Object.entries(estado.desempenhoCategorias)
+function avaliarCompetencias(mapa = estado.desempenhoCategorias) {
+  const entradas = Object.entries(mapa)
     .filter(([, dados]) => dados.respostas > 0)
     .map(([categoria, dados]) => ({
       categoria,
@@ -777,7 +847,11 @@ function finalizarJogo() {
   document.getElementById('classificacao-final').textContent = classificacao;
   document.getElementById('mensagem-final').textContent = mensagemClassificacao(estado.pontuacaoTotal);
   document.getElementById('clientes-final').textContent = `${clientes.length}/${clientes.length}`;
-  document.getElementById('decisoes-final').textContent = `${estado.acertos}/${totalDecisoes}`;
+  const indiceQualidade = Math.max(0, Math.min(totalDecisoes, (estado.saldoQualidade + (estado.decisoesRespondidas * 2)) / 4));
+  const indiceFormatado = Number.isInteger(indiceQualidade)
+    ? String(indiceQualidade)
+    : indiceQualidade.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  document.getElementById('decisoes-final').textContent = `${indiceFormatado}/${totalDecisoes}`;
   document.getElementById('satisfacao-final').textContent = `${satisfacaoMedia}%`;
   document.getElementById('objecoes-final').textContent = `${desempenhoObjecoes}%`;
   const avaliacao = avaliarCompetencias();
@@ -787,7 +861,7 @@ function finalizarJogo() {
   document.getElementById('vendedor-final').src = estado.pontuacaoTotal >= 241
     ? imagemVendedor('comemorando') : imagemVendedor('feliz');
   atualizarIdentidadeVendedor();
-  salvarTentativa(classificacao);
+  salvarTentativa(classificacao, indiceQualidade);
   localStorage.removeItem(CHAVE_PROGRESSO);
   if (estado.pontuacaoTotal >= 400) iniciarCutscene('sucesso');
   else if (estado.pontuacaoTotal <= 0) iniciarCutscene('fracasso');
@@ -872,12 +946,13 @@ function mostrarResultadoFinal() {
   }
 }
 
-function salvarTentativa(classificacao) {
+function salvarTentativa(classificacao, indiceQualidade = null) {
   const historico = lerHistorico();
   historico.push({
     data: new Date().toISOString(), pontuacao: estado.pontuacaoTotal, classificacao,
-    clientes: clientes.length, erros: estado.erros, acertos: estado.acertos, maximo: 400, versao: 4,
+    clientes: clientes.length, erros: estado.erros, acertos: estado.acertos, maximo: 400, versao: 5,
     nomeVendedor: estado.nomeVendedor, sexoVendedor: estado.sexoVendedor,
+    indiceQualidade,
     desempenhoCategorias: estado.desempenhoCategorias
   });
   localStorage.setItem('historicoEpav', JSON.stringify(historico));
@@ -891,7 +966,7 @@ function lerHistorico() {
 function salvarProgresso() {
   if (estado.etapa === 'menu' || estado.indiceClienteAtual >= clientes.length) return;
   const progresso = {
-    versao: 4,
+    versao: 5,
     salvoEm: new Date().toISOString(),
     etapa: estado.etapa,
     nomeVendedor: estado.nomeVendedor,
@@ -916,17 +991,22 @@ function salvarProgresso() {
     fatosDescobertos: estado.fatosDescobertos,
     ultimaQualidade: estado.ultimaQualidade,
     desempenhoCategorias: estado.desempenhoCategorias,
+    desempenhoAtendimento: estado.desempenhoAtendimento,
+    saldoQualidade: estado.saldoQualidade,
     clienteRecemLiberado: estado.clienteRecemLiberado
   };
   localStorage.setItem(CHAVE_PROGRESSO, JSON.stringify(progresso));
-  localStorage.removeItem(CHAVE_PROGRESSO_ANTIGA);
+  CHAVES_PROGRESSO_ANTIGAS.forEach(chave => localStorage.removeItem(chave));
 }
 
 function lerProgresso() {
   try {
-    const progresso = JSON.parse(localStorage.getItem(CHAVE_PROGRESSO) || localStorage.getItem(CHAVE_PROGRESSO_ANTIGA) || 'null');
+    const bruto = localStorage.getItem(CHAVE_PROGRESSO)
+      || CHAVES_PROGRESSO_ANTIGAS.map(chave => localStorage.getItem(chave)).find(Boolean)
+      || 'null';
+    const progresso = JSON.parse(bruto);
     const etapasValidas = ['escritorio', 'dialogo', 'resultado'];
-    if (!progresso || ![3, 4].includes(progresso.versao) || !etapasValidas.includes(progresso.etapa)) return null;
+    if (!progresso || ![3, 4, 5].includes(progresso.versao) || !etapasValidas.includes(progresso.etapa)) return null;
     if (!Number.isInteger(progresso.indiceClienteAtual) || progresso.indiceClienteAtual < 0 || progresso.indiceClienteAtual >= clientes.length) return null;
     if (progresso.etapa !== 'escritorio' && !clientes.some(cliente => cliente.id === progresso.clienteId)) return null;
     return progresso;
@@ -969,6 +1049,8 @@ function continuarPartidaSalva() {
     fatosDescobertos: Array.isArray(progresso.fatosDescobertos) ? progresso.fatosDescobertos : [],
     ultimaQualidade: progresso.ultimaQualidade || 'neutra',
     desempenhoCategorias: progresso.desempenhoCategorias && typeof progresso.desempenhoCategorias === 'object' ? progresso.desempenhoCategorias : {},
+    desempenhoAtendimento: progresso.desempenhoAtendimento && typeof progresso.desempenhoAtendimento === 'object' ? progresso.desempenhoAtendimento : {},
+    saldoQualidade: Number(progresso.saldoQualidade) || 0,
     clienteRecemLiberado: progresso.clienteRecemLiberado || null,
     etapa: progresso.etapa
   });
@@ -1008,9 +1090,11 @@ function mostrarHistorico() {
       const pontuacao = tentativa.maximo
         ? `${tentativa.pontuacao.toLocaleString('pt-BR')}/${tentativa.maximo} pts`
         : `${tentativa.pontuacao.toLocaleString('pt-BR')} pts`;
-      const acertos = Number.isInteger(tentativa.acertos) ? ` · ${tentativa.acertos}/40 corretas` : ' · versão anterior';
+      const resumoQualidade = Number.isFinite(tentativa.indiceQualidade)
+        ? ` · qualidade ${tentativa.indiceQualidade.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}/40`
+        : Number.isInteger(tentativa.acertos) ? ` · ${tentativa.acertos}/40 corretas` : ' · versão anterior';
       const vendedor = tentativa.nomeVendedor ? `${tentativa.nomeVendedor} · ` : '';
-      item.innerHTML = `<strong>Tentativa ${numero}</strong><strong>${pontuacao}</strong><span>${tentativa.classificacao}</span><span>${data}</span><small>${vendedor}${tentativa.clientes || 5}/5 clientes${acertos} · ${tentativa.erros ?? 0} decisões a revisar</small>`;
+      item.innerHTML = `<strong>Tentativa ${numero}</strong><strong>${pontuacao}</strong><span>${tentativa.classificacao}</span><span>${data}</span><small>${vendedor}${tentativa.clientes || 5}/5 clientes${resumoQualidade} · ${tentativa.erros ?? 0} decisões a revisar</small>`;
       container.appendChild(item);
     });
   }
