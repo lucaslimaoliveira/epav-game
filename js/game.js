@@ -384,7 +384,7 @@ function renderizarOpcoes(no) {
     botao.dataset.atalho = numero;
     botao.title = `Atalho: ${letra} ou ${numero}`;
     botao.setAttribute('aria-keyshortcuts', `${letra} ${numero}`);
-    botao.textContent = opcao.texto;
+    botao.textContent = personalizarTexto(opcao.texto);
     if (Number.isInteger(opcao.produto)) {
       const produto = estado.clienteAtual.produtos[opcao.produto];
       botao.classList.add('produto');
