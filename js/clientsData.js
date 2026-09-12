@@ -232,7 +232,7 @@ const clientes = [
     [
       'Hoje estou meio sem tempo.',
       [
-        'Sem problema. Posso ser objetivo e te mostrar apenas as opções que fazem sentido.',
+        'Sem problema. Posso ser [OBJETIVO] e te mostrar apenas as opções que fazem sentido.',
         'É rapidinho, então posso te mostrar algumas coisas.',
         'Você consegue esperar alguns minutos.',
         'Então deixa para outro dia.'
@@ -269,8 +269,8 @@ const clientes = [
     [
       'Oi. Você pode me ajudar rapidinho?\n\n[VENDEDOR]: Claro. O que você está procurando?\n\nCAMILA: Algumas coisas para a semana, mas estou com bastante pressa.',
       [
-        'Claro. Vou ser objetiva e entender primeiro o que você precisa.',
-        'Pode deixar que vou tentar ser rápida.',
+        'Claro. Vou ser [OBJETIVO] e entender primeiro o que você precisa.',
+        'Pode deixar que vou tentar ser [RAPIDO].',
         'Tenho várias opções para te mostrar.',
         'É só um minutinho, prometo.'
       ], [10, 5, 3, -5], 'abordagem'
@@ -345,7 +345,7 @@ const clientes = [
         'Boa escolha.',
         'Tem certeza?',
         'Finalmente.'
-      ], [10, 5, 0, -10], 'fechamento', 'Obrigada, [VENDEDOR]. Você conseguiu ser rápido mesmo.'
+      ], [10, 5, 0, -10], 'fechamento', 'Obrigada, [VENDEDOR]. Você conseguiu ser [RAPIDO] mesmo.'
     ]
   ]),
 
@@ -379,7 +379,7 @@ const clientes = [
       'Mas eu estou com bastante pressa hoje.',
       [
         'Tudo bem. Vou focar apenas no que atende às suas necessidades.',
-        'Vou tentar ser rápido.',
+        'Vou tentar ser [RAPIDO].',
         'Tenho bastante coisa para mostrar.',
         'Então você pode voltar outro dia.'
       ], [10, 5, 3, -5], 'abordagem'

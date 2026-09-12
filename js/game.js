@@ -57,7 +57,11 @@ function imagemVendedor(expressao = 'parado') {
 }
 
 function personalizarTexto(texto = '') {
-  return texto.replaceAll('[VENDEDOR]', estado.nomeVendedor);
+  const feminino = estado.sexoVendedor === 'feminino';
+  return texto
+    .replaceAll('[VENDEDOR]', estado.nomeVendedor)
+    .replaceAll('[OBJETIVO]', feminino ? 'objetiva' : 'objetivo')
+    .replaceAll('[RAPIDO]', feminino ? 'rápida' : 'rápido');
 }
 
 function cancelarDigitacao() {
@@ -527,6 +531,7 @@ function iniciarCutscene(tipo) {
   temporizadoresCutscene.forEach(clearTimeout);
   temporizadoresCutscene = [];
   const sucesso = tipo === 'sucesso';
+  const feminino = estado.sexoVendedor === 'feminino';
   const cenario = document.getElementById('cutscene-cenario');
   cenario.className = sucesso ? 'sucesso' : 'fracasso';
   document.getElementById('cutscene-selo').textContent = sucesso ? 'FINAL PERFEITO DESBLOQUEADO' : 'PONTUAÇÃO MÍNIMA · 0/400';
@@ -540,8 +545,8 @@ function iniciarCutscene(tipo) {
     ? imagemVendedor('comemorando')
     : imagemVendedor('frustrado');
   document.getElementById('cutscene-vendedor').alt = sucesso
-    ? 'Vendedor EPAV comemorando com os clientes'
-    : 'Vendedor EPAV sendo expulso pelos clientes';
+    ? `${feminino ? 'Vendedora' : 'Vendedor'} EPAV comemorando com os clientes`
+    : `${feminino ? 'Vendedora EPAV sendo expulsa' : 'Vendedor EPAV sendo expulso'} pelos clientes`;
 
   const container = document.getElementById('cutscene-clientes');
   container.innerHTML = clientes.map((cliente, indice) =>
@@ -556,9 +561,9 @@ function iniciarCutscene(tipo) {
         'Lucas: “Esse atendimento foi muito bom.”',
         'Marina: “Você realmente entendeu o que eu precisava.”',
         'Rafael: “Agora eu sei onde vou procurar da próxima vez.”',
-        'Camila: “Rápido, objetivo e ainda conseguiu me ajudar.”',
-        'André: “Pode colocar esse vendedor na equipe!”',
-        'Narrador: MESTRE DO EPAV · 400/400 — Você não vendeu apenas produtos. Você entendeu pessoas.'
+        `Camila: “${feminino ? 'Rápida, objetiva' : 'Rápido, objetivo'} e ainda conseguiu me ajudar.”`,
+        `André: “Pode colocar ${feminino ? 'essa vendedora' : 'esse vendedor'} na equipe!”`,
+        `Narrador: ${feminino ? 'MESTRA' : 'MESTRE'} DO EPAV · 400/400 — Você não vendeu apenas produtos. Você entendeu pessoas.`
       ]
     : [
         'Lucas: “Você nem tentou entender o que eu precisava.”',
