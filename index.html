@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#12304a">
   <title>Fechando Negócio — EPAV</title>
-  <link rel="stylesheet" href="css/style.css?v=20260912-8">
+  <link rel="stylesheet" href="css/style.css?v=20260915-4">
 </head>
 <body>
   <main id="jogo">
@@ -68,6 +68,7 @@
           <div class="hud-identidade"><small id="cargo-vendedor-hud">VENDEDOR</small><strong id="nome-vendedor-hud">Kevin</strong></div>
           <div class="hud-progresso"><small id="rotulo-progresso-escritorio">CLIENTE 1/5</small><strong id="progresso-escritorio">0/5</strong><span class="trilho-progresso"><span id="barra-progresso-escritorio"></span></span></div>
           <div><small>PONTOS</small><strong id="pontos-escritorio">0000</strong></div>
+          <div class="hud-tempo"><small>TEMPO TOTAL</small><strong id="tempo-jogo-escritorio" role="timer" aria-label="Tempo total da partida">00:00</strong></div>
         </header>
         <div class="dica-observacao"><span>!</span> Observe o contexto antes de abordar.</div>
         <img id="vendedor-sprite" src="assets/images/vendedor-parado.png" alt="Vendedor EPAV com braçadeira azul">
@@ -83,7 +84,13 @@
             <span id="emoji-satisfacao">😐</span>
             <div><small>SATISFAÇÃO</small><div id="barra-satisfacao"><div id="barra-satisfacao-preenchimento"></div></div></div>
           </div>
-          <div class="progresso-dialogo"><small id="progresso-dialogo">ATENDIMENTO 1/5</small><strong id="fase-atendimento">Iniciando abordagem</strong><span class="trilho-progresso"><span id="barra-progresso-dialogo"></span></span></div>
+          <div class="progresso-dialogo">
+            <small id="progresso-dialogo">ATENDIMENTO 1/5</small><strong id="fase-atendimento">Iniciando abordagem</strong><span class="trilho-progresso"><span id="barra-progresso-dialogo"></span></span>
+            <div id="temporizador-atendimento" class="temporizador-atendimento" aria-live="polite">
+              <span>⏱ TEMPO RESTANTE</span><strong id="tempo-atendimento">02:20</strong>
+            </div>
+            <span class="trilho-tempo" aria-hidden="true"><span id="barra-tempo-atendimento"></span></span>
+          </div>
           <div class="pontos-dialogo"><small>PONTOS</small><strong id="pontos-dialogo">0</strong></div>
         </header>
         <div id="estado-conversa" class="estado-conversa neutro" aria-live="polite"><span>●</span> CLIENTE NEUTRO</div>
@@ -118,8 +125,8 @@
 
     <section id="tela-resultado" class="tela">
       <div class="painel resultado-painel">
-        <p class="sobretitulo">ATENDIMENTO CONCLUÍDO</p>
-        <div class="selo-resultado">✓</div>
+        <p id="sobretitulo-resultado" class="sobretitulo">ATENDIMENTO CONCLUÍDO</p>
+        <div id="selo-resultado" class="selo-resultado">✓</div>
         <h2 id="titulo-resultado">Boa conversa!</h2>
         <strong id="pontos-atendimento" class="pontos-atendimento">+0 pontos</strong>
         <div class="mini-resumo-atendimento">
@@ -242,8 +249,8 @@
   </div>
 
   <script src="js/firebase-config.js"></script>
-  <script src="js/clientsData.js?v=20260912-8"></script>
-  <script src="js/game.js?v=20260912-9"></script>
+  <script src="js/clientsData.js?v=20260915-1"></script>
+  <script src="js/game.js?v=20260915-3"></script>
   <script src="js/ranking.js?v=20260912-9"></script>
 </body>
 </html>

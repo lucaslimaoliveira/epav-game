@@ -32,6 +32,12 @@ function lerArquivoEnv() {
 }
 
 const arquivoEnv = lerArquivoEnv();
+const tempoInformado = String(process.env.TEMPO_ATENDIMENTO_SEGUNDOS || arquivoEnv.TEMPO_ATENDIMENTO_SEGUNDOS || '140').trim();
+const tempoAtendimentoSegundos = Number(tempoInformado);
+if (!/^\d+$/.test(tempoInformado) || tempoAtendimentoSegundos <= 0
+    || !Number.isSafeInteger(tempoAtendimentoSegundos * 1000)) {
+  throw new Error('TEMPO_ATENDIMENTO_SEGUNDOS deve ser um número inteiro positivo em segundos, por exemplo 140.');
+}
 const config = Object.fromEntries(Object.entries(nomes).map(([campo, variavel]) => [
   campo, process.env[variavel] || arquivoEnv[variavel] || ''
 ]));
@@ -40,6 +46,6 @@ if (ausentes.length) {
   throw new Error(`Configuração Firebase incompleta: ${ausentes.join(', ')}`);
 }
 
-const conteudo = `// Gerado durante o build; não editar nem versionar.\nwindow.EPAV_FIREBASE_CONFIG = ${JSON.stringify(config).replace(/</g, '\\u003c')};\n`;
+const conteudo = `// Gerado durante o build; não editar nem versionar.\nwindow.EPAV_FIREBASE_CONFIG = ${JSON.stringify(config).replace(/</g, '\\u003c')};\nwindow.EPAV_GAME_CONFIG = ${JSON.stringify({ tempoAtendimentoSegundos })};\n`;
 writeFileSync(resolve('js/firebase-config.js'), conteudo, { encoding: 'utf8', flag: 'w' });
-console.log('Configuração pública do Firebase gerada para o site.');
+console.log(`Configuração gerada: limite de ${tempoAtendimentoSegundos} segundos por atendimento.`);

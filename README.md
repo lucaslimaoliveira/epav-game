@@ -36,6 +36,14 @@ O workflow `.github/workflows/deploy-pages.yml` monta o site estático no GitHub
 
 O build falha se algum valor faltar, evitando publicar um ranking parcialmente configurado. Não coloque senha de usuário, chave de conta de serviço ou credencial de administrador nesses secrets destinados ao navegador.
 
+## Configurar o tempo de atendimento
+
+No repositório do GitHub, acesse **Settings → Secrets and variables → Actions → Variables → New repository variable** e crie `TEMPO_ATENDIMENTO_SEGUNDOS` com um número inteiro positivo em segundos. Por exemplo, `140` corresponde a **2 minutos e 20 segundos** para cada cliente.
+
+Após mudar o valor, execute novamente o workflow de publicação para atualizar o site. Se a variável não estiver definida, o limite padrão é `140` segundos. Os avisos de demora e a expulsão do atendimento acompanham esse limite.
+
+Para testar localmente, adicione `TEMPO_ATENDIMENTO_SEGUNDOS=140` ao `.env` e execute novamente `node scripts/build-firebase-config.mjs`.
+
 ## Limite de segurança do ranking
 
 O site é estático e calcula pontos e tempo no navegador. As regras validam login, dono do registro, formato e faixas numéricas, mas **não conseguem comprovar que o jogador realmente fez aquelas escolhas ou levou aquele tempo**. Portanto, um usuário técnico ainda pode falsificar seu resultado. Para um ranking competitivo ou com premiação, será necessário validar partidas em um servidor confiável ou Cloud Functions antes de aceitar os resultados.

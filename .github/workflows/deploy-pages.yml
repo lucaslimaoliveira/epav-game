@@ -30,8 +30,9 @@ jobs:
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Gerar configuração do Firebase
+      - name: Gerar configuração do jogo e Firebase
         env:
+          TEMPO_ATENDIMENTO_SEGUNDOS: ${{ vars.TEMPO_ATENDIMENTO_SEGUNDOS }}
           FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
           FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}

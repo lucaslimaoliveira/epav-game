@@ -26,6 +26,9 @@ const estado = {
   saldoQualidade: 0,
   clienteRecemLiberado: null,
   tempoJogadoMs: 0,
+  tempoAtendimentoMs: 0,
+  penalidadesTempo: 0,
+  atendimentoExpulso: false,
   etapa: 'menu'
 };
 
@@ -40,7 +43,13 @@ let temporizadorAvancoDialogo = null;
 let temporizadorInsight = null;
 let ultimaTentativaId = null;
 let inicioTrechoJogoMs = null;
+let intervaloTempoJogo = null;
 let partidaConcluida = false;
+let inicioTrechoAtendimentoMs = null;
+let intervaloTempoAtendimento = null;
+
+const INICIO_DEMORA_PERCENTUAL = 0.6;
+const INTERVALO_PENALIDADE_DEMORA_MS = 20000;
 
 function tempoJogadoAtualMs() {
   const trecho = inicioTrechoJogoMs === null ? 0 : performance.now() - inicioTrechoJogoMs;
@@ -48,9 +57,17 @@ function tempoJogadoAtualMs() {
 }
 
 function pausarTempoJogo() {
+  clearInterval(intervaloTempoJogo);
+  intervaloTempoJogo = null;
   if (inicioTrechoJogoMs === null) return;
   estado.tempoJogadoMs = tempoJogadoAtualMs();
   inicioTrechoJogoMs = null;
+  atualizarTempoEscritorio();
+}
+
+function atualizarTempoEscritorio() {
+  const indicador = document.getElementById('tempo-jogo-escritorio');
+  if (indicador) indicador.textContent = formatarTempoJogo(tempoJogadoAtualMs()).split(',')[0];
 }
 
 function sincronizarCronometro() {
@@ -58,7 +75,12 @@ function sincronizarCronometro() {
   const jogando = ['tela-escritorio', 'tela-dialogo', 'tela-resultado'].includes(tela)
     && !document.hidden && document.getElementById('modal').hidden && !partidaConcluida;
   if (jogando && inicioTrechoJogoMs === null) inicioTrechoJogoMs = performance.now();
+  if (jogando && intervaloTempoJogo === null) {
+    intervaloTempoJogo = setInterval(atualizarTempoEscritorio, 250);
+  }
   if (!jogando) pausarTempoJogo();
+  atualizarTempoEscritorio();
+  sincronizarTempoAtendimento();
 }
 
 function formatarTempoJogo(milissegundos) {
@@ -71,6 +93,110 @@ function formatarTempoJogo(milissegundos) {
   return horas
     ? `${horas}:${String(minutos % 60).padStart(2, '0')}:${parteSegundos},${parteCentessimos}`
     : `${String(minutos).padStart(2, '0')}:${parteSegundos},${parteCentessimos}`;
+}
+
+function formatarTempoAtendimento(milissegundos) {
+  const segundos = Math.max(0, Math.ceil((Number(milissegundos) || 0) / 1000));
+  return `${String(Math.floor(segundos / 60)).padStart(2, '0')}:${String(segundos % 60).padStart(2, '0')}`;
+}
+
+function obterLimiteTempoAtendimentoMs() {
+  const segundos = window.EPAV_GAME_CONFIG?.tempoAtendimentoSegundos;
+  return Number.isSafeInteger(segundos * 1000) && segundos > 0 ? segundos * 1000 : 140000;
+}
+
+function tempoAtendimentoAtualMs() {
+  const trecho = inicioTrechoAtendimentoMs === null ? 0 : performance.now() - inicioTrechoAtendimentoMs;
+  return Math.max(0, Math.round(estado.tempoAtendimentoMs + trecho));
+}
+
+function pausarTempoAtendimento() {
+  if (inicioTrechoAtendimentoMs !== null) {
+    estado.tempoAtendimentoMs = tempoAtendimentoAtualMs();
+    inicioTrechoAtendimentoMs = null;
+  }
+  clearInterval(intervaloTempoAtendimento);
+  intervaloTempoAtendimento = null;
+}
+
+function deveContarTempoAtendimento() {
+  return document.querySelector('.tela.ativa')?.id === 'tela-dialogo'
+    && !document.hidden
+    && document.getElementById('modal').hidden
+    && Boolean(estado.clienteAtual)
+    && !estado.atendimentoExpulso;
+}
+
+function sincronizarTempoAtendimento() {
+  if (!deveContarTempoAtendimento()) return pausarTempoAtendimento();
+  if (inicioTrechoAtendimentoMs === null) inicioTrechoAtendimentoMs = performance.now();
+  if (!intervaloTempoAtendimento) {
+    intervaloTempoAtendimento = setInterval(atualizarTemporizadorAtendimento, 250);
+  }
+  atualizarTemporizadorAtendimento();
+}
+
+function atualizarTemporizadorAtendimento() {
+  const cliente = estado.clienteAtual;
+  if (!cliente || estado.atendimentoExpulso) return;
+  const limite = obterLimiteTempoAtendimentoMs();
+  const decorrido = tempoAtendimentoAtualMs();
+  const restante = Math.max(0, limite - decorrido);
+  const indicador = document.getElementById('temporizador-atendimento');
+  const texto = document.getElementById('tempo-atendimento');
+  const barra = document.getElementById('barra-tempo-atendimento');
+  const percentual = (restante / limite) * 100;
+  if (texto) texto.textContent = formatarTempoAtendimento(restante);
+  if (barra) barra.style.width = `${percentual}%`;
+  if (indicador) {
+    indicador.classList.toggle('alerta', percentual <= 40 && percentual > 20);
+    indicador.classList.toggle('critico', percentual <= 20);
+    indicador.setAttribute('aria-label', `Tempo restante: ${formatarTempoAtendimento(restante)}`);
+  }
+
+  const inicioDemora = limite * INICIO_DEMORA_PERCENTUAL;
+  const penalidadesEsperadas = decorrido < inicioDemora ? 0
+    : Math.floor((decorrido - inicioDemora) / INTERVALO_PENALIDADE_DEMORA_MS) + 1;
+  if (penalidadesEsperadas > estado.penalidadesTempo && decorrido < limite) {
+    const novasPenalidades = penalidadesEsperadas - estado.penalidadesTempo;
+    const perda = novasPenalidades * 5;
+    estado.penalidadesTempo = penalidadesEsperadas;
+    estado.satisfacao = Math.max(0, estado.satisfacao - perda);
+    estado.ultimaQualidade = 'ruim';
+    atualizarBarraSatisfacao();
+    atualizarEstadoConversa();
+    mostrarReacaoCliente('negativa');
+    exibirFeedbackDecisao(-perda, `${cliente.nome} está perdendo a paciência com a demora. Responda com mais agilidade.`, 'SATISFAÇÃO');
+    salvarProgresso();
+  }
+  if (decorrido >= limite) expulsarAtendimentoPorDemora();
+}
+
+function expulsarAtendimentoPorDemora() {
+  if (estado.atendimentoExpulso || !estado.clienteAtual) return;
+  const cliente = estado.clienteAtual;
+  const limite = obterLimiteTempoAtendimentoMs();
+  pausarTempoAtendimento();
+  estado.tempoAtendimentoMs = limite;
+  estado.atendimentoExpulso = true;
+  estado.satisfacao = 0;
+  estado.pontuacaoAtendimento = 0;
+  estado.erros += 1;
+  estado.ultimaQualidade = 'muitoRuim';
+  cancelarDigitacao();
+  clearTimeout(temporizadorAvancoDialogo);
+  document.getElementById('opcoes-resposta').hidden = true;
+  document.getElementById('balao-vendedor').hidden = true;
+  document.getElementById('nome-falante').textContent = cliente.nome.toUpperCase();
+  document.getElementById('texto-cliente').textContent = `${cliente.nome}: Não posso esperar mais. Vou encerrar este atendimento.`;
+  document.getElementById('vendedor-dialogo').src = imagemVendedor('frustrado');
+  mostrarReacaoCliente('negativa');
+  atualizarBarraSatisfacao();
+  atualizarEstadoConversa();
+  document.getElementById('pontos-dialogo').textContent = '0';
+  exibirFeedbackDecisao(-10, 'Tempo esgotado: o cliente encerrou o atendimento por demora.', 'ATENDIMENTO');
+  salvarProgresso();
+  setTimeout(() => finalizarAtendimento(true), 1700);
 }
 
 const nomesCategorias = {
@@ -433,6 +559,7 @@ function mostrarTela(id) {
 
 function iniciarJogo() {
   pausarTempoJogo();
+  pausarTempoAtendimento();
   partidaConcluida = false;
   ultimaTentativaId = null;
   estado.temporizadores.forEach(clearTimeout);
@@ -463,6 +590,9 @@ function iniciarJogo() {
     saldoQualidade: 0,
     clienteRecemLiberado: null,
     tempoJogadoMs: 0,
+    tempoAtendimentoMs: 0,
+    penalidadesTempo: 0,
+    atendimentoExpulso: false,
     etapa: 'escritorio'
   });
   atualizarIdentidadeVendedor();
@@ -621,6 +751,7 @@ function irParaAtendimento(indice, momentoInadequado = false) {
 }
 
 function iniciarAtendimento(cliente) {
+  pausarTempoAtendimento();
   estado.clienteAtual = cliente;
   estado.satisfacao = cliente.satisfacaoInicial;
   estado.pontuacaoAtendimento = 0;
@@ -628,6 +759,9 @@ function iniciarAtendimento(cliente) {
   estado.fatosDescobertos = [];
   estado.ultimaQualidade = 'neutra';
   estado.desempenhoAtendimento = {};
+  estado.tempoAtendimentoMs = 0;
+  estado.penalidadesTempo = 0;
+  estado.atendimentoExpulso = false;
   estado.noAtual = cliente.noInicial;
   estado.etapa = 'dialogo';
   if (estado.momentoInadequado) {
@@ -645,6 +779,7 @@ function iniciarAtendimento(cliente) {
     estado.momentoInadequado ? 'Você interrompeu o cliente antes do momento adequado. Ele começa a conversa menos receptivo.' : ''
   );
   mostrarTela('tela-dialogo');
+  sincronizarTempoAtendimento();
   salvarProgresso();
   renderizarNo();
   if (estado.momentoInadequado) {
@@ -653,6 +788,7 @@ function iniciarAtendimento(cliente) {
 }
 
 function renderizarNo() {
+  if (estado.atendimentoExpulso) return;
   clearTimeout(temporizadorAvancoDialogo);
   const no = estado.clienteAtual.dialogo[estado.noAtual];
   if (!no) return finalizarAtendimento();
@@ -698,6 +834,7 @@ function renderizarOpcoes(no) {
 }
 
 function escolherOpcao(opcao, botao) {
+  if (estado.atendimentoExpulso) return;
   cancelarDigitacao();
   document.querySelectorAll('#opcoes-resposta button').forEach(item => item.disabled = true);
   estado.satisfacao = Math.max(0, Math.min(100, estado.satisfacao + opcao.efeitoSatisfacao));
@@ -753,7 +890,7 @@ function escolherOpcao(opcao, botao) {
   });
 }
 
-function exibirFeedbackDecisao(pontos, texto) {
+function exibirFeedbackDecisao(pontos, texto, rotulo = 'PONTOS') {
   const feedback = document.getElementById('feedback-decisao');
   const pontosElemento = document.getElementById('feedback-pontos');
   const textoElemento = document.getElementById('feedback-texto');
@@ -766,7 +903,7 @@ function exibirFeedbackDecisao(pontos, texto) {
   const neutro = pontos === 0;
   feedback.hidden = false;
   feedback.className = `feedback-decisao ${positivo ? 'positivo' : neutro ? 'neutro' : 'negativo'}`;
-  pontosElemento.textContent = `${pontos > 0 ? '+' : ''}${pontos} PONTOS`;
+  pontosElemento.textContent = `${pontos > 0 ? '+' : ''}${pontos} ${rotulo}`;
   textoElemento.textContent = texto;
   feedback.animate(
     [{ opacity: 0, transform: 'translateY(7px)' }, { opacity: 1, transform: 'translateY(0)' }],
@@ -810,8 +947,10 @@ function emojiSatisfacao(valor, reagirUltimaEscolha = true) {
   return '😠';
 }
 
-function finalizarAtendimento() {
+function finalizarAtendimento(expulso = false) {
+  pausarTempoAtendimento();
   estado.bonusAtendimento = 0;
+  if (expulso) estado.pontuacaoAtendimento = 0;
   estado.pontuacaoTotal += estado.pontuacaoAtendimento;
   estado.satisfacaoAcumulada += estado.satisfacao;
   estado.etapa = 'resultado';
@@ -820,15 +959,23 @@ function finalizarAtendimento() {
 }
 
 function mostrarResultadoAtendimento() {
+  const expulso = estado.atendimentoExpulso;
   const titulo = estado.satisfacao >= 80 ? 'Conexão excelente!' : estado.satisfacao >= 60 ? 'Boa conversa!' : 'Há espaço para melhorar';
   const avaliacao = avaliarCompetencias(estado.desempenhoAtendimento);
-  document.getElementById('titulo-resultado').textContent = titulo;
-  document.getElementById('pontos-atendimento').textContent = `+${estado.pontuacaoAtendimento} pontos`;
+  document.getElementById('sobretitulo-resultado').textContent = expulso ? 'ATENDIMENTO ENCERRADO' : 'ATENDIMENTO CONCLUÍDO';
+  document.getElementById('selo-resultado').textContent = expulso ? '!' : '✓';
+  document.getElementById('selo-resultado').classList.toggle('encerrado', expulso);
+  document.getElementById('titulo-resultado').textContent = expulso ? 'Cliente perdeu a paciência' : titulo;
+  const pontosAtendimento = document.getElementById('pontos-atendimento');
+  pontosAtendimento.textContent = expulso ? '0 pontos · tempo esgotado' : `+${estado.pontuacaoAtendimento} pontos`;
+  pontosAtendimento.classList.toggle('encerrado', expulso);
   document.getElementById('forte-atendimento').textContent = avaliacao.forte;
   document.getElementById('cuidado-atendimento').textContent = avaliacao.melhoria;
   document.getElementById('resumo-atendimento').textContent = `${estado.satisfacao}% ${emojiSatisfacao(estado.satisfacao, false)}`;
   const fatos = estado.fatosDescobertos.map(fato => fato.rotulo).join(' · ');
-  document.getElementById('licao-atendimento').textContent = fatos
+  document.getElementById('licao-atendimento').textContent = expulso
+    ? `${estado.clienteAtual.nome} encerrou a conversa porque o tempo acabou. Leia o ritmo do cliente e avance com objetividade.`
+    : fatos
     ? `${estado.clienteAtual.licao} Ficha de escuta: ${fatos}.`
     : estado.clienteAtual.licao;
   mostrarTela('tela-resultado');
@@ -1048,7 +1195,7 @@ function marcarTentativaPublicada(id, uid) {
 function salvarProgresso() {
   if (estado.etapa === 'menu' || estado.indiceClienteAtual >= clientes.length) return;
   const progresso = {
-    versao: 5,
+    versao: 6,
     salvoEm: new Date().toISOString(),
     etapa: estado.etapa,
     nomeVendedor: estado.nomeVendedor,
@@ -1076,6 +1223,9 @@ function salvarProgresso() {
     desempenhoAtendimento: estado.desempenhoAtendimento,
     saldoQualidade: estado.saldoQualidade,
     tempoJogadoMs: tempoJogadoAtualMs(),
+    tempoAtendimentoMs: tempoAtendimentoAtualMs(),
+    penalidadesTempo: estado.penalidadesTempo,
+    atendimentoExpulso: estado.atendimentoExpulso,
     clienteRecemLiberado: estado.clienteRecemLiberado
   };
   localStorage.setItem(CHAVE_PROGRESSO, JSON.stringify(progresso));
@@ -1089,7 +1239,7 @@ function lerProgresso() {
       || 'null';
     const progresso = JSON.parse(bruto);
     const etapasValidas = ['escritorio', 'dialogo', 'resultado'];
-    if (!progresso || ![3, 4, 5].includes(progresso.versao) || !etapasValidas.includes(progresso.etapa)) return null;
+    if (!progresso || ![3, 4, 5, 6].includes(progresso.versao) || !etapasValidas.includes(progresso.etapa)) return null;
     if (!Number.isInteger(progresso.indiceClienteAtual) || progresso.indiceClienteAtual < 0 || progresso.indiceClienteAtual >= clientes.length) return null;
     if (progresso.etapa !== 'escritorio' && !clientes.some(cliente => cliente.id === progresso.clienteId)) return null;
     return progresso;
@@ -1107,6 +1257,7 @@ function continuarPartidaSalva() {
   }
 
   pausarTempoJogo();
+  pausarTempoAtendimento();
   partidaConcluida = false;
   estado.temporizadores.forEach(clearTimeout);
   const perfilSalvo = lerPerfilVendedor();
@@ -1138,6 +1289,11 @@ function continuarPartidaSalva() {
     saldoQualidade: Number(progresso.saldoQualidade) || 0,
     tempoJogadoMs: Number.isFinite(progresso.tempoJogadoMs) && progresso.tempoJogadoMs >= 0
       ? Math.round(progresso.tempoJogadoMs) : 0,
+    tempoAtendimentoMs: Number.isFinite(progresso.tempoAtendimentoMs) && progresso.tempoAtendimentoMs >= 0
+      ? Math.round(progresso.tempoAtendimentoMs) : 0,
+    penalidadesTempo: Number.isInteger(progresso.penalidadesTempo) && progresso.penalidadesTempo >= 0
+      ? progresso.penalidadesTempo : 0,
+    atendimentoExpulso: Boolean(progresso.atendimentoExpulso),
     clienteRecemLiberado: progresso.clienteRecemLiberado || null,
     etapa: progresso.etapa
   });
@@ -1150,6 +1306,7 @@ function continuarPartidaSalva() {
 
 function restaurarAtendimento() {
   const cliente = estado.clienteAtual;
+  if (estado.atendimentoExpulso) return finalizarAtendimento(true);
   precarregarReacoesCliente(cliente);
   mostrarReacaoCliente('neutra', false);
   document.getElementById('vendedor-dialogo').src = imagemVendedor('parado');
@@ -1159,6 +1316,7 @@ function restaurarAtendimento() {
   atualizarProgressoMissao(true);
   exibirFeedbackDecisao(0, 'Partida restaurada. Continue de onde parou.');
   mostrarTela('tela-dialogo');
+  sincronizarTempoAtendimento();
   renderizarNo();
 }
 
@@ -1252,6 +1410,7 @@ function confirmarSaida() {
 
 function abrirModal(titulo, texto, rotulo, acao) {
   pausarTempoJogo();
+  pausarTempoAtendimento();
   salvarProgresso();
   const modal = document.getElementById('modal');
   document.getElementById('modal-titulo').textContent = titulo;
@@ -1266,14 +1425,17 @@ function abrirModal(titulo, texto, rotulo, acao) {
 function fecharModal() {
   document.getElementById('modal').hidden = true;
   sincronizarCronometro();
+  sincronizarTempoAtendimento();
 }
 
 document.addEventListener('visibilitychange', () => {
   sincronizarCronometro();
+  sincronizarTempoAtendimento();
   if (document.hidden) salvarProgresso();
 });
 window.addEventListener('pagehide', () => {
   pausarTempoJogo();
+  pausarTempoAtendimento();
   salvarProgresso();
 });
 
